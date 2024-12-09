@@ -1,3 +1,5 @@
+# pycaret does not support macOS, see
+# https://pycaret.gitbook.io/docs/get-started/installation#option-1-install-via-pypi
 name: Python package
 
 on:
@@ -15,7 +17,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
+        os: ['ubuntu-latest', 'windows-latest']
         python-version: ['3.10', '3.11', '3.12']
     steps:
       - uses: actions/checkout@v4
