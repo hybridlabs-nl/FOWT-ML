@@ -48,6 +48,7 @@ docs = [
     "mkdocs-jupyter",
     "mkdocstrings[python]",
     "mkdocs-gen-files",
+    "mkdocs-include-markdown-plugin",
     "jupyterlab",
     "matplotlib",
 ]
