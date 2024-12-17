@@ -1,0 +1,55 @@
+data:
+  exp699:
+    mat_file: ./data_example/exp699.mat
+    wind_speed: 4.0
+ml_setup:
+  target: [
+      'acc_tb_meas3[0]',
+      'acc_tb_meas3[1]',
+      'acc_tb_meas3[2]',
+      'acc_tt_meas3[0]',
+      'acc_tt_meas3[1]',
+      'acc_tt_meas3[2]',
+      'force_aero_est6[0]',
+      'force_aero_est6[1]',
+      'force_aero_est6[2]',
+      'force_aero_est6[3]',
+      'force_aero_est6[4]',
+      'force_aero_est6[5]',
+      'force_tt_meas6[0]',
+      'force_tt_meas6[1]',
+      'force_tt_meas6[2]',
+      'force_tt_meas6[3]',
+      'force_tt_meas6[4]',
+      'force_tt_meas6[5]',
+              ]
+  predictors: [
+      'pos_act6[0]',
+      'pos_act6[1]',
+      'pos_act6[2]',
+      'pos_act6[3]',
+      'pos_act6[4]',
+      'pos_act6[5]',
+      'spd_rot_act',
+      'wind_speed',
+      ]
+  save_grid_scores: True
+  save_best_model: True
+pycaret_setup:
+    n_jobs: 2
+    use_gpu: False
+    train_size: 0.7
+    linear_models: [  # pycaret linear models that supports multi-output regression
+        "en", # Elastic Net
+        "lar", # Least Angle Regression
+        "llar", # LassoLars Regression
+        "lasso", # Lasso Regression
+        "lr", # Linear Regression
+        "ridge", # Ridge Regression
+        "omp", # Orthogonal Matching Pursuit
+        "ransac", # Random Sample Consensus
+        ]
+    metrics_sort : "R2"  # or TT for time in seconds,
+    system_log: "./logs.log"
+session:
+  working_dir: "./data_example"
