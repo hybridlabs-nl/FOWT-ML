@@ -14,14 +14,14 @@ def create_dummy_mat_file(file_name):
         x_grp = grp.create_group("X")
 
         # Example time data
-        x_grp.create_dataset("Data", data=np.linspace(0, 10, 10))
+        x_grp.create_dataset("Data", data=np.linspace(0, 10, 50))
 
         # Create the 'Y' subgroup with 'Name' and 'Data' datasets
         y_grp = grp.create_group("Y")
 
         # Example names and data
         names = ["acc_tb_meas3[0]", "acc_tb_meas3[1]", "acc_tb_meas3[2]"]
-        data = [np.random.rand(10) for _ in names]
+        data = [np.random.rand(50) for _ in names]
 
         # Create references for the names and data
         name_refs = []
@@ -51,7 +51,7 @@ def creat_dummy_config(config_file, mat_file):
         target: ["acc_tb_meas3[0]"]
         predictors: ["acc_tb_meas3[1]", "acc_tb_meas3[2]"]
     pycaret_setup:
-        models: ["en", "lar"]
+        models: ["en", "lr"]
         n_jobs: 1
         use_gpu: False
         system_log: False

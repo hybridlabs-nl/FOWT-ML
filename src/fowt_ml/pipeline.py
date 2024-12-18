@@ -83,10 +83,10 @@ class Pipeline:
 
         ml_setup = self.config["ml_setup"]
         if ml_setup.get("save_grid_scores", False):
-            grid_scores = experiment.pull()
+            self.grid_scores = experiment.pull()
             session_setup = self.config["session_setup"]
             file_name = Path(session_setup["work_dir"]) / "grid_scores.csv"
-            grid_scores.to_csv(file_name, index=False)
+            self.grid_scores.to_csv(file_name, index=False)
             logger.info(f"Grid scores saved to {file_name}.")
 
         if ml_setup.get("save_best_model", False):

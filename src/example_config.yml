@@ -51,5 +51,5 @@ pycaret_setup:
         ]
     metrics_sort : "R2"  # or TT for time in seconds,
     system_log: "./logs.log"
-session:
-  working_dir: "./data_example"
+session_setup:
+  work_dir: "."

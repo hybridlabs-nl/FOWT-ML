@@ -13,7 +13,7 @@ def test_convert_mat_to_df(tmp_path):
     data_id = "exp1"
     df = convert_mat_to_df(mat_file, data_id)
 
-    assert df.shape == (10, 4)
+    assert df.shape == (50, 4)
     assert "time" in df.columns
     assert "acc_tb_meas3[0]" in df.columns
     assert "acc_tb_meas3[1]" in df.columns
@@ -35,7 +35,7 @@ def test_get_data_with_wind_speed(tmp_path, caplog):
     with caplog.at_level(logging.INFO):
         df = get_data(data_id, config)
 
-    assert df.shape == (10, 5)  # wind_speed column added
+    assert df.shape == (50, 5)  # wind_speed column added
     assert "wind_speed" in df.columns
     assert "description" not in df.columns
     assert any("Wind speed not found" in record.message for record in caplog.records)
@@ -55,5 +55,5 @@ def test_get_data_without_wind_speed(tmp_path):
 
     df = get_data(data_id, config)
 
-    assert df.shape == (10, 4)
+    assert df.shape == (50, 4)
     assert "wind_speed" not in df.columns
