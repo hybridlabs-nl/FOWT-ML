@@ -1,50 +1,59 @@
 import logging
 from pathlib import Path
+from typing import Any
 import pandas as pd
 from pycaret.regression import RegressionExperiment
 from fowt_ml.config import read_yaml
-from fowt_ml.datasets import convert_mat_to_df
-from fowt_ml.datasets import read_mat_file
+from fowt_ml.datasets import get_data
 
 logger = logging.getLogger(__name__)
 
 
 class Pipeline:
     def __init__(self, config_file: str):
+        """Initializes the machine learning pipeline.
+
+        Args:
+            config_file (str): Path to the configuration yaml file.
+        """
         self.config = read_yaml(config_file)
 
     def get_data(self, data_id: str) -> pd.DataFrame:
-        """Returns the dataset for the given data_id."""
-        data_info = self.config["data"][data_id]
+        """Returns the dataset for the given data_id.
 
-        hdf = read_mat_file(data_info["mat_file"], data_id)
-        df = convert_mat_to_df(hdf)
+        Args:
+            data_id (str): ID of the data in the configuration file.
 
-        # check if wind speed is present
-        if "wind_speed" not in df and data_info["wind_speed"] is not None:
-            df["wind_speed"] = data_info["wind_speed"]
-            msg = (
-                f"Wind speed not found in the data file. "
-                f"Setting it to {data_info['wind_speed']}."
-            )
-            logger.info(msg)
-        return df
+        Returns:
+            pd.DataFrame: DataFrame for the given data_id, set in the
+            configuration file.
+        """
+        data_config = self.config["data"]
+        return get_data(data_id, data_config)
 
-    def setup(self, data_id: str):
-        """Sets up the machine learning experiment."""
-        data = self.get_data(data_id)
+    def setup(self, data: pd.DataFrame) -> RegressionExperiment:
+        """Sets up the machine learning experiment.
 
+        Args:
+            data (pd.DataFrame): DataFrame containing the data.
+
+        Returns:
+            pycaret.regression: Pycaret RegressionExperiment
+
+        """
         ml_setup = self.config["ml_setup"]
         pycaret_setup = self.config["pycaret_setup"]
 
         # use regression experiment
-        s = RegressionExperiment()
-        exp = s.setup(
+        # TODO: this will create a logs.log function. We need to disable it.
+        reg_exp = RegressionExperiment()
+
+        exp = reg_exp.setup(
             data=data[ml_setup["predictors"]],
             target=data[ml_setup["target"]],
-            n_jobs=pycaret_setup["n_jobs"],
-            use_gpu=pycaret_setup["use_gpu"],
-            system_log=pycaret_setup["system_log"],
+            n_jobs=pycaret_setup.get("n_jobs", 1),
+            use_gpu=pycaret_setup.get("use_gpu", False),
+            system_log=pycaret_setup.get("system_log", False),
             preprocess=False,
             session_id=123,
             html=False,
@@ -52,28 +61,38 @@ class Pipeline:
         )
         return exp
 
-    def compare_models(self, experiment):
-        """Compares the models and returns the best model."""
+    def compare_models(self, experiment) -> Any:
+        """Compares the models and returns the best model.
+
+        Args:
+            experiment (pycaret.regression): Pycaret RegressionExperiment
+
+        Returns:
+            Any: Best model from the experiment according to metrics_sort, set
+            in the configuration file.
+
+        """
         pycaret_setup = self.config["pycaret_setup"]
 
         best_model = experiment.compare_models(
-            include=pycaret_setup["linear_models"],
-            sort=pycaret_setup["metrics_sort"],
+            include=pycaret_setup["models"],
+            sort=pycaret_setup.get("metrics_sort", "R2"),
             turbo=False,
             verbose=False,
         )
 
         ml_setup = self.config["ml_setup"]
-        if ml_setup["save_grid_scores"]:
+        if ml_setup.get("save_grid_scores", False):
             grid_scores = experiment.pull()
             session_setup = self.config["session_setup"]
             file_name = Path(session_setup["work_dir"]) / "grid_scores.csv"
             grid_scores.to_csv(file_name, index=False)
             logger.info(f"Grid scores saved to {file_name}.")
 
-        if ml_setup["save_best_model"]:
-            session_setup = self.config["session_setup"]
-            file_name = Path(session_setup["work_dir"]) / "best_model.onnx"
+        if ml_setup.get("save_best_model", False):
+            raise NotImplementedError("Saving best model is not implemented yet.")
+            # session_setup = self.config["session_setup"]
+            # file_name = Path(session_setup["work_dir"]) / "best_model.onnx"
             # TODO: fix it
             # save_sklearn_to_onnx(file_name)
             # logger.info(f"Best model saved to {file_name}.")

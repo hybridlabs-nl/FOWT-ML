@@ -8,8 +8,16 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
-def read_mat_file(mat_file: str, data_id: str) -> h5py.File:
-    """Reads a matlab file and returns the h5py file object."""
+def convert_mat_to_df(mat_file: str, data_id: str) -> pd.DataFrame:
+    """Reads a matlab file and returns a pandas DataFrame.
+
+    Args:
+        mat_file (str): Path to a matlab file.
+        data_id (str): ID of the data in the matlab file.
+
+    Returns:
+        pd.DataFrame: DataFrame containing the data.
+    """
     hdf = h5py.File(mat_file, mode="r")
 
     # validate the file
@@ -24,14 +32,10 @@ def read_mat_file(mat_file: str, data_id: str) -> h5py.File:
 
     if "Name" not in hdf[data_id]["Y"] or "Data" not in hdf[data_id]["Y"]:
         raise ValueError(f"Experiment {data_id} does not have Y Name or Data.")
-    return hdf
 
-
-def convert_mat_to_df(hdf: h5py.File) -> pd.DataFrame:
-    """Converts a h5py file object to a pandas DataFrame."""
-    data = {"time": np.array(hdf["exp699"]["X"]["Data"][:]).flatten()}
-    name_references = np.array(hdf["exp699"]["Y"]["Name"][:]).flatten()
-    data_references = np.array(hdf["exp699"]["Y"]["Data"][:]).flatten()
+    data = {"time": np.array(hdf[data_id]["X"]["Data"][:]).flatten()}
+    name_references = np.array(hdf[data_id]["Y"]["Name"][:]).flatten()
+    data_references = np.array(hdf[data_id]["Y"]["Data"][:]).flatten()
 
     for index, (name_ref, data_ref) in enumerate(
         zip(name_references, data_references, strict=False)
@@ -46,3 +50,30 @@ def convert_mat_to_df(hdf: h5py.File) -> pd.DataFrame:
             name = f"{name}_{index}"
         data[name] = np.array(hdf[data_ref]).flatten()
     return pd.DataFrame(data)
+
+
+def get_data(data_id: str, config: dict) -> pd.DataFrame:
+    """Returns a dataframe for the given data_id.
+
+    Args:
+        data_id (str): ID of the data in the configuration file.
+        config (dict): Configuration dictionary.
+            Example: {"data_id": {"mat_file": "data.mat"}}.
+
+    Returns:
+        pd.DataFrame: DataFrame for the given data_id.
+
+    """
+    data_info = config[data_id]
+    df = convert_mat_to_df(data_info["mat_file"], data_id)
+
+    # check if wind speed is present
+    if "wind_speed" not in df and "wind_speed" in data_info:
+        df["wind_speed"] = data_info["wind_speed"]
+        msg = (
+            f"Wind speed not found in the data file. "
+            f"But found in config file. "
+            f"Setting it to {data_info['wind_speed']}."
+        )
+        logger.info(msg)
+    return df

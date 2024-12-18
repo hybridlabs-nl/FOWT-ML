@@ -1,6 +1,6 @@
 data:
   exp699:
-    mat_file: ./data_example/exp699.mat
+    mat_file: /home/sarah/temp/hybridlabs/data_example/exp699.mat
     wind_speed: 4.0
 ml_setup:
   target: [
@@ -39,7 +39,7 @@ pycaret_setup:
     n_jobs: 2
     use_gpu: False
     train_size: 0.7
-    linear_models: [  # pycaret linear models that supports multi-output regression
+    models: [  # pycaret linear models that supports multi-output regression
         "en", # Elastic Net
         "lar", # Least Angle Regression
         "llar", # LassoLars Regression
