@@ -26,8 +26,7 @@ classifiers = [
 ]
 dependencies = [
     "h5py",
-    "pycaret[analysis,models,parallel]",
-    "pyyaml",
+    "autogluon",
 ]
 description = "Machine learning (ML) kit for floating offshore wind turbines (FOWT)"
 keywords = ["wind turbine"," machine learning"," NN"," ML"," FOWT"]
