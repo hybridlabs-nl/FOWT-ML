@@ -35,21 +35,20 @@ ml_setup:
       ]
   save_grid_scores: True
   save_best_model: True
-pycaret_setup:
-    n_jobs: 2
-    use_gpu: False
-    train_size: 0.7
-    models: [  # pycaret linear models that supports multi-output regression
-        "en", # Elastic Net
-        "lar", # Least Angle Regression
-        "llar", # LassoLars Regression
-        "lasso", # Lasso Regression
-        "lr", # Linear Regression
-        "ridge", # Ridge Regression
-        "omp", # Orthogonal Matching Pursuit
-        "ransac", # Random Sample Consensus
-        ]
-    metrics_sort : "R2"  # or TT for time in seconds,
-    system_log: "./logs.log"
+  n_jobs: 2
+  use_gpu: False
+  train_size: 0.7
+  models: [  # models that supports multi-output regression
+      "en", # Elastic Net
+      "lar", # Least Angle Regression
+      "llar", # LassoLars Regression
+      "lasso", # Lasso Regression
+      "lr", # Linear Regression
+      "ridge", # Ridge Regression
+      "omp", # Orthogonal Matching Pursuit
+      "ransac", # Random Sample Consensus
+      ]
+  metrics_sort : "R2"  # or TT for time in seconds,
+  system_log: "./logs.log"
 session_setup:
   work_dir: "."

@@ -50,7 +50,6 @@ def creat_dummy_config(config_file, mat_file):
     ml_setup:
         target: ["acc_tb_meas3[0]"]
         predictors: ["acc_tb_meas3[1]", "acc_tb_meas3[2]"]
-    pycaret_setup:
         models: ["en", "lr"]
         n_jobs: 1
         use_gpu: False

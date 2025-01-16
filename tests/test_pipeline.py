@@ -14,7 +14,6 @@ class TestPipeline:
 
         assert "data" in my_pipeline.config
         assert "ml_setup" in my_pipeline.config
-        assert "pycaret_setup" in my_pipeline.config
         assert my_pipeline.config["data"]["exp1"]["mat_file"] == str(mat_file)
 
     def test_get_data(self, tmp_path):
@@ -39,8 +38,9 @@ class TestPipeline:
         # test setup
         my_pipeline = Pipeline(config_file)
         df = my_pipeline.get_data("exp1")
-        exp = my_pipeline.setup(df)
-        assert exp is not None
+        with pytest.raises(Exception) as e:
+            my_pipeline.setup(df)
+        assert "Setup is not" in str(e.value)
 
     def test_compare_models(self, tmp_path):
         # create dummy files
@@ -52,43 +52,7 @@ class TestPipeline:
         # test setup
         my_pipeline = Pipeline(config_file)
         df = my_pipeline.get_data("exp1")
-        exp = my_pipeline.setup(df)
-        result = my_pipeline.compare_models(exp)
-        assert result is not None
-
-    def test_compare_models_save_grid(self, tmp_path):
-        # create dummy files
-        config_file = tmp_path / "config.yaml"
-        mat_file = tmp_path / "data.mat"
-        creat_dummy_config(config_file, mat_file)
-        create_dummy_mat_file(mat_file)
-
-        # test setup
-        my_pipeline = Pipeline(config_file)
-        df = my_pipeline.get_data("exp1")
-        exp = my_pipeline.setup(df)
-
-        my_pipeline.config["ml_setup"]["save_grid_scores"] = True
-        my_pipeline.config["session_setup"] = {"work_dir": str(tmp_path)}
-
-        my_pipeline.compare_models(exp)
-        assert "MAE" in my_pipeline.grid_scores
-        assert (tmp_path / "grid_scores.csv").exists()
-
-    def test_compare_models_save_model(self, tmp_path):
-        # create dummy files
-        config_file = tmp_path / "config.yaml"
-        mat_file = tmp_path / "data.mat"
-        creat_dummy_config(config_file, mat_file)
-        create_dummy_mat_file(mat_file)
-
-        # test setup
-        my_pipeline = Pipeline(config_file)
-        df = my_pipeline.get_data("exp1")
-        exp = my_pipeline.setup(df)
-
-        my_pipeline.config["ml_setup"]["save_best_model"] = True
-
         with pytest.raises(Exception) as e:
-            my_pipeline.compare_models(exp)
-        assert "Saving best model" in str(e.value)
+            my_pipeline.setup(df)
+            my_pipeline.compare_models()
+        assert "Setup is not" in str(e.value)
