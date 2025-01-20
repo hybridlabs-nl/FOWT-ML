@@ -26,6 +26,7 @@ classifiers = [
 ]
 dependencies = [
     "h5py",
+    "mlflow",
     "numpy",
     "pandas",
     "pyyaml",
@@ -44,6 +45,8 @@ dev = [
     "pytest-cov",
     "ruff",
     "mypy",
+    "jupyterlab",
+    "matplotlib",
 ]
 docs = [
     "mkdocs",
