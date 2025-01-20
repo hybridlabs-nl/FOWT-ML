@@ -67,3 +67,6 @@ venv.bak/
 *.swp
 *.swo
 *.orig
+
+# Project specific
+docs/notebooks/mlruns/
