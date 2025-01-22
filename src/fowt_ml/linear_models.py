@@ -2,15 +2,8 @@
 
 from dataclasses import dataclass
 from numpy.typing import ArrayLike
-from sklearn.linear_model import ElasticNet
-from sklearn.linear_model import Lars
-from sklearn.linear_model import Lasso
-from sklearn.linear_model import LinearRegression
-from sklearn.linear_model import Ridge
-from sklearn.metrics import mean_absolute_error
-from sklearn.metrics import mean_squared_error
-from sklearn.metrics import r2_score
-from sklearn.metrics import root_mean_squared_error
+import sklearn.linear_model as lm
+import sklearn.metrics as sm
 
 
 @dataclass
@@ -31,17 +24,17 @@ class LinearModels:
     """Class to handle linear models and metrics for comparison."""
 
     ESTIMATOR_NAMES = {
-        "LinearRegression": LinearRegression(),
-        "RidgeRegression": Ridge(),
-        "LassoRegression": Lasso(),
-        "ElasticNetRegression": ElasticNet(),
-        "LeastAngleRegression": Lars(),
+        "LinearRegression": lm.LinearRegression(),
+        "RidgeRegression": lm.Ridge(),
+        "LassoRegression": lm.Lasso(),
+        "ElasticNetRegression": lm.ElasticNet(),
+        "LeastAngleRegression": lm.Lars(),
     }
     METRICS_NAMES = {
-        "root_mean_squared_error": root_mean_squared_error,
-        "mean_squared_error": mean_squared_error,
-        "r2_score": r2_score,
-        "mean_absolute_error": mean_absolute_error,
+        "root_mean_squared_error": sm.root_mean_squared_error,
+        "mean_squared_error": sm.mean_squared_error,
+        "r2_score": sm.r2_score,
+        "mean_absolute_error": sm.mean_absolute_error,
     }
 
     def __init__(self, estimator: str | Estimator) -> None:
