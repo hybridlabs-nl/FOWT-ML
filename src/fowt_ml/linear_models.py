@@ -1,53 +1,86 @@
-from typing import Union
-import mlflow
-from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet, Lars
-from sklearn.metrics import root_mean_squared_error, mean_squared_error, r2_score, mean_absolute_error
+"""Module to handle linear models."""
 from dataclasses import dataclass
+from numpy.typing import ArrayLike
+from sklearn.linear_model import ElasticNet
+from sklearn.linear_model import Lars
+from sklearn.linear_model import Lasso
+from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import Ridge
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import r2_score
+from sklearn.metrics import root_mean_squared_error
+
 
 @dataclass
-class Algorithm:
+class Estimator:
     name: str
     func: callable
+    reference: str = "sklearn"
 
 @dataclass
 class Metric:
     name: str
     func: callable
+    reference: str = "sklearn"
 
 
 class LinearModels:
-    ALGORITHM_NAMES = {
-        'LinearRegression': LinearRegression(),
-        'RidgeRegression': Ridge(),
-        'LassoRegression': Lasso(),
-        'ElasticNetRegression': ElasticNet(),
-        'LeastAngleRegression': Lars()
+    """Class to handle linear models and metrics for comparison."""
+    ESTIMATOR_NAMES = {
+        "LinearRegression": LinearRegression(),
+        "RidgeRegression": Ridge(),
+        "LassoRegression": Lasso(),
+        "ElasticNetRegression": ElasticNet(),
+        "LeastAngleRegression": Lars()
     }
     METRICS_NAMES = {
-        'root_mean_squared_error': root_mean_squared_error,
-        'mean_squared_error': mean_squared_error,
-        'r2_score': r2_score,
-        'mean_absolute_error': mean_absolute_error
+        "root_mean_squared_error": root_mean_squared_error,
+        "mean_squared_error": mean_squared_error,
+        "r2_score": r2_score,
+        "mean_absolute_error": mean_absolute_error
     }
 
-    def __init__(self, model: Union[str, Algorithm]):
-        """Initialize the class"""
-        if isinstance(model, str):
-            if not self.ALGORITHM_NAMES.get(model):
+    def __init__(self, estimator: str | Estimator)-> None:
+        """Initialize the class with the estimator."""
+        if isinstance(estimator, str):
+            if not self.ESTIMATOR_NAMES.get(estimator):
                 msg = (
-                    f"model {model} not supported. "
-                    f"Choose one of {list(self.ALGORITHM_NAMES.keys())}"
-                    f"or pass a Algorithm instance."
+                    f"estimator {estimator} not supported. "
+                    f"Choose one of {list(self.ESTIMATOR_NAMES.keys())}"
+                    f"or pass a Estimator instance."
                 )
                 raise ValueError(msg)
-            self.model = Algorithm(model, self.ALGORITHM_NAMES.get(model))
-        elif isinstance(model, Algorithm):
-            self.model = model
+            self.estimator = Estimator(estimator, self.ESTIMATOR_NAMES.get(estimator))
+        elif isinstance(estimator, Estimator):
+            self.estimator = estimator
             # TODO: validate if model function is a callable and valid
         else:
-            raise ValueError("model must be a string or a Algorithm instance.")
+            raise ValueError("model must be a string or a Estimator instance.")
 
-    def calculate_metric(self, X_train, X_test, y_train, y_test, metric: Union[str, Metric]):
+    def calculate_metric(
+            self,
+            x_train: ArrayLike,
+            x_test: ArrayLike,
+            y_train: ArrayLike,
+            y_test: ArrayLike,
+            metric: str | Metric
+            )-> float:
+        """Calculate the metric for the model using test data.
+
+        First it fits the model with the training data, then predicts the test
+        data
+
+        Args:
+            x_train (ArrayLike): training data for features
+            x_test (ArrayLike): test data for features
+            y_train (ArrayLike): training data for targets
+            y_test (ArrayLike): test data for targets
+            metric (Union[str, Metric]): the metric to calculate
+
+        Returns:
+            float: the metric value
+        """
         if isinstance(metric, str):
             if not self.METRICS_NAMES.get(metric):
                 msg = (
@@ -60,6 +93,7 @@ class LinearModels:
         elif not isinstance(metric, Metric):
             raise ValueError("metric must be a string or a Metric instance.")
 
-        self.trained_model = self.model.func.fit(X_train, y_train)
-        self.y_pred = self.trained_model.predict(X_test)
+        # TODO: check other arguments of fit, predict and metric functions
+        self.model = self.estimator.func.fit(x_train, y_train)
+        self.y_pred = self.model.predict(x_test)
         return self.metric.func(y_test, self.y_pred)
