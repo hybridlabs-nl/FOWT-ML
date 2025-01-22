@@ -1,4 +1,5 @@
 """Module to handle linear models."""
+
 from dataclasses import dataclass
 from numpy.typing import ArrayLike
 from sklearn.linear_model import ElasticNet
@@ -18,6 +19,7 @@ class Estimator:
     func: callable
     reference: str = "sklearn"
 
+
 @dataclass
 class Metric:
     name: str
@@ -27,21 +29,22 @@ class Metric:
 
 class LinearModels:
     """Class to handle linear models and metrics for comparison."""
+
     ESTIMATOR_NAMES = {
         "LinearRegression": LinearRegression(),
         "RidgeRegression": Ridge(),
         "LassoRegression": Lasso(),
         "ElasticNetRegression": ElasticNet(),
-        "LeastAngleRegression": Lars()
+        "LeastAngleRegression": Lars(),
     }
     METRICS_NAMES = {
         "root_mean_squared_error": root_mean_squared_error,
         "mean_squared_error": mean_squared_error,
         "r2_score": r2_score,
-        "mean_absolute_error": mean_absolute_error
+        "mean_absolute_error": mean_absolute_error,
     }
 
-    def __init__(self, estimator: str | Estimator)-> None:
+    def __init__(self, estimator: str | Estimator) -> None:
         """Initialize the class with the estimator."""
         if isinstance(estimator, str):
             if not self.ESTIMATOR_NAMES.get(estimator):
@@ -59,13 +62,13 @@ class LinearModels:
             raise ValueError("model must be a string or a Estimator instance.")
 
     def calculate_metric(
-            self,
-            x_train: ArrayLike,
-            x_test: ArrayLike,
-            y_train: ArrayLike,
-            y_test: ArrayLike,
-            metric: str | Metric
-            )-> float:
+        self,
+        x_train: ArrayLike,
+        x_test: ArrayLike,
+        y_train: ArrayLike,
+        y_test: ArrayLike,
+        metric: str | Metric,
+    ) -> float:
         """Calculate the metric for the model using test data.
 
         First it fits the model with the training data, then predicts the test
