@@ -9,8 +9,9 @@ from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import r2_score
 from sklearn.metrics import root_mean_squared_error
-from fowt_ml.linear_models import Estimator, Metric
+from fowt_ml.linear_models import Estimator
 from fowt_ml.linear_models import LinearModels
+from fowt_ml.linear_models import Metric
 
 
 class TestEstimator:
