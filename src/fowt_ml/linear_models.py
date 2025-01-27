@@ -1,7 +1,6 @@
 """Module to handle linear models."""
 
 from dataclasses import dataclass
-from typing import dict
 import sklearn.linear_model as lm
 import sklearn.metrics as sm
 from numpy.typing import ArrayLike
