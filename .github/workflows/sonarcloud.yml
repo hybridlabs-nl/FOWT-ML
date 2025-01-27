@@ -26,13 +26,15 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install .[dev]
       - name: Run unit tests and store coverage
-        run: |
-          coverage run -m pytest
-          coverage report -m
-          coverage xml -o coverage.xml
-          ls -l coverage.xml
+        run: coverage run -m pytest
+      - name: Show coverage
+        run: coverage report -m
+      - name: Generate XML coverage report
+        run: coverage xml -o coverage.xml
       - name: Make coverage paths relative
         run: sed -i "s+$PWD/++g" coverage.xml
+      - name: Inspect file
+        run: ls -l coverage.xml
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v4
         with:
