@@ -92,6 +92,10 @@ class TestLinearModel:
             LinearModels(LinearRegression())
         assert "model must be a string or a Estimator instance" in str(e.value)
 
+    def test_init_estimator_kwargs(self):
+        model = LinearModels("LinearRegression", {"fit_intercept": False})
+        assert model.estimator.func.fit_intercept is False
+
     def test_calculate_metric_rmse(self, simple_dataset):
         x_train, x_test, y_train, y_test = simple_dataset
         model = LinearModels("LinearRegression")
