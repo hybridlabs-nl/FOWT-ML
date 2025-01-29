@@ -22,6 +22,7 @@ ENSEMBLE_REGRESSORS = {
 
 class EnsembleModel:
     """Class to handle random forest models and metrics for comparison."""
+
     def __init__(self, estimator: str | Estimator, **kwargs: dict[str, Any]) -> None:
         if isinstance(estimator, str):
             if estimator not in ENSEMBLE_REGRESSORS:
@@ -33,8 +34,11 @@ class EnsembleModel:
         self._is_fitted = False
 
     def cross_val_score(
-            self, X: ArrayLike, y: ArrayLike, cv: int | None = None,
-            scoring: str | None = None
+        self,
+        X: ArrayLike,
+        y: ArrayLike,
+        cv: int | None = None,
+        scoring: str | None = None,
     ) -> float | ArrayLike:
         """Get Cross Validation score.
 
@@ -54,7 +58,7 @@ class EnsembleModel:
         return self.estimator.predict(X)
 
     def score(
-            self, X: ArrayLike, y: ArrayLike, scoring: str | None = None
+        self, X: ArrayLike, y: ArrayLike, scoring: str | None = None
     ) -> float | ArrayLike:
         """Calculate score for a fitted estimator.
 
