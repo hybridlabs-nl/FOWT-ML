@@ -45,8 +45,6 @@ dev = [
     "pytest-cov",
     "ruff",
     "mypy",
-    "jupyterlab",
-    "matplotlib",
 ]
 docs = [
     "mkdocs",
