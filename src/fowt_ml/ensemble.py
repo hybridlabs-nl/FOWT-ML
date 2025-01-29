@@ -1,4 +1,5 @@
 # ruff: noqa: N803
+import warnings
 from collections.abc import Iterable
 from typing import Any
 from typing import Protocol
@@ -7,6 +8,7 @@ from numpy.typing import ArrayLike
 from sklearn.ensemble import ExtraTreesRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import check_scoring
+from sklearn.metrics import get_scorer
 from sklearn.model_selection import cross_val_score
 
 
@@ -38,13 +40,28 @@ class EnsembleModel:
         X: ArrayLike,
         y: ArrayLike,
         cv: int | None = None,
-        scoring: str | Iterable | None = None,
+        scoring: str | None = None,
     ) -> float | ArrayLike:
         """Get Cross Validation score.
 
         Scoring paramers overview: https://scikit-learn.org/stable/modules/model_evaluation.html#string-name-scorers
         """  # noqa: E501
         return cross_val_score(self.estimator, X, y, cv=cv, scoring=scoring)
+
+    def oob_score(
+        self, X: ArrayLike, y: ArrayLike, scoring: str | None = None
+    ) -> float:
+        """Fit and estimate generalization score from out-of-bag samples."""
+        if scoring is None:
+            oob_score = True
+        else:
+            scorer = get_scorer(scoring)
+            oob_score = scorer._score_func
+        if not (self.estimator.bootstrap and self.estimator.oob_score):
+            warnings.warn(f"Setting `bootstrap=True` and `oob_score={oob_score}`")
+            self.estimator.set_params({"bootstrap": True, "oob_score": oob_score})
+        self.estimator.fit(X, y)
+        return self.estimator.oob_score_
 
     def calculate_score(
         self,
