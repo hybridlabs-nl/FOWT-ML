@@ -1,14 +1,17 @@
-from typing import Any, Protocol, Self
-
+# ruff: noqa: N803
+from typing import Any
+from typing import Protocol
+from typing import Self
 from numpy.typing import ArrayLike
-from sklearn.ensemble import ExtraTreesRegressor, RandomForestRegressor
+from sklearn.ensemble import ExtraTreesRegressor
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import get_scorer
 from sklearn.model_selection import cross_val_score
 
 
 class Estimator(Protocol):
-    def fit(self, X: ArrayLike, y: ArrayLike) -> Self: ...
-    def predict(self, X: ArrayLike) -> ArrayLike: ...
+    def fit(self, X: ArrayLike, y: ArrayLike) -> Self: ...  # noqa: D102
+    def predict(self, X: ArrayLike) -> ArrayLike: ...  # noqa: D102
 
 
 ENSEMBLE_REGRESSORS = {
@@ -29,28 +32,34 @@ class EnsembleModel:
 
         self._is_fitted = False
 
-    def cross_val_score(self, X: ArrayLike, y: ArrayLike, cv: int | None = None, scoring: str | None = None):
-        """ Get Cross Validation score.
+    def cross_val_score(
+            self, X: ArrayLike, y: ArrayLike, cv: int | None = None,
+            scoring: str | None = None
+    ) -> float | ArrayLike:
+        """Get Cross Validation score.
 
         Scoring paramers overview: https://scikit-learn.org/stable/modules/model_evaluation.html#string-name-scorers
-        """
+        """  # noqa: E501
         return cross_val_score(self.estimator, X, y, cv=cv, scoring=scoring)
 
     def fit(self, X: ArrayLike, y: ArrayLike, sample_weight: ArrayLike = None) -> None:
-        """ Fit an estimator. """
+        """Fit an estimator."""
         self.estimator.fit(X, y, sample_weight=sample_weight)
         self._is_fitted = True
 
     def predict(self, X: ArrayLike) -> ArrayLike:
-        """ Predict with a fitted estimator. """
+        """Predict with a fitted estimator."""
         if not self._is_fitted:
             raise RuntimeError("Run `model.fit(...)` first!")
         return self.estimator.predict(X)
 
-    def score(self, X: ArrayLike, y: ArrayLike, scoring: str | None = None) -> float | ArrayLike:
-        """ Calculate score for a fitted estimator.
+    def score(
+            self, X: ArrayLike, y: ArrayLike, scoring: str | None = None
+    ) -> float | ArrayLike:
+        """Calculate score for a fitted estimator.
 
-        If "scoring" is not provided, directly use the `.score()` method of the estimator.
+        If "scoring" is not provided, directly use the `.score()` method of the
+        estimator.
         """
         if scoring is None:
             score = self.estimator.score(X, y)
