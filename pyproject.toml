@@ -29,6 +29,7 @@ dependencies = [
     "numpy",
     "pandas",
     "pyyaml",
+    "scikit-learn>=1.5",
 ]
 description = "Machine learning (ML) kit for floating offshore wind turbines (FOWT)"
 keywords = ["wind turbine"," machine learning"," NN"," ML"," FOWT"]
