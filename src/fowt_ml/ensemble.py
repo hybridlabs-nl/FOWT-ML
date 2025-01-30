@@ -2,19 +2,13 @@
 import warnings
 from collections.abc import Iterable
 from typing import Any
-from typing import Protocol
-from typing import Self
 from numpy.typing import ArrayLike
+from sklearn.base import BaseEstimator
 from sklearn.ensemble import ExtraTreesRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import check_scoring
 from sklearn.metrics import get_scorer
 from sklearn.model_selection import cross_val_score
-
-
-class Estimator(Protocol):
-    def fit(self, X: ArrayLike, y: ArrayLike) -> Self: ...  # noqa: D102
-    def predict(self, X: ArrayLike) -> ArrayLike: ...  # noqa: D102
 
 
 class EnsembleModel:
@@ -25,7 +19,9 @@ class EnsembleModel:
         "RandomForest": RandomForestRegressor,
     }
 
-    def __init__(self, estimator: str | Estimator, **kwargs: dict[str, Any]) -> None:
+    def __init__(
+        self, estimator: str | BaseEstimator, **kwargs: dict[str, Any]
+    ) -> None:
         if isinstance(estimator, str):
             if estimator not in self.ENSEMBLE_REGRESSORS:
                 raise ValueError(
