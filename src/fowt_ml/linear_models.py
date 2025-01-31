@@ -60,6 +60,6 @@ class LinearModels:
         Returns:
             float: the scoring value
         """
-        self.model = self.estimator.fit(x_train, y_train)
+        self.estimator.fit(x_train, y_train)
         scorer = sm.check_scoring(self.estimator, scoring=scoring)
         return scorer(self.estimator, x_test, y_test)
