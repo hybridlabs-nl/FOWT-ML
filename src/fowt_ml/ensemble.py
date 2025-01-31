@@ -8,7 +8,6 @@ from sklearn.ensemble import ExtraTreesRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import check_scoring
 from sklearn.metrics import get_scorer
-from sklearn.model_selection import cross_val_score
 
 
 class EnsembleModel:
@@ -30,7 +29,6 @@ class EnsembleModel:
             self.estimator = self.ENSEMBLE_REGRESSORS[estimator](**kwargs)
         else:
             self.estimator = estimator.set_params(**kwargs)
-
 
     def oob_score(
         self, X: ArrayLike, y: ArrayLike, scoring: str | None = None
