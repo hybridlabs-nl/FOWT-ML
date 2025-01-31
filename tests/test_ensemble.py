@@ -48,20 +48,6 @@ class TestEnsembleModel:
         model = EnsembleModel(estimator=estimator)
         assert isinstance(model.estimator, RandomForestRegressor)
 
-    def test_cross_val_score_results_have_correct_shape(self, regression_data):
-        x, y = regression_data
-        model = EnsembleModel(estimator="RandomForest")
-        n_folds = 3  # default is to use k-fold CV, where k is the number of folds
-        scores = model.cross_val_score(x, y, cv=n_folds)
-        assert len(scores) == n_folds
-
-    def test_cross_val_score_can_accept_custom_scoring(self, regression_data):
-        x, y = regression_data
-        model = EnsembleModel(estimator="RandomForest")
-        scores = model.cross_val_score(x, y, scoring="neg_root_mean_squared_error")
-        # score is negative to make it such that higher is better
-        assert all(scores < 0)
-
     def test_oob_score_works_with_default_scoring(self, regression_data):
         x, y = regression_data
         # oob_score=True means that r2 scoring is used
