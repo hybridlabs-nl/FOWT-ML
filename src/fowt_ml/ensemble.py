@@ -31,18 +31,6 @@ class EnsembleModel:
         else:
             self.estimator = estimator.set_params(**kwargs)
 
-    def cross_val_score(
-        self,
-        X: ArrayLike,
-        y: ArrayLike,
-        cv: int | None = None,
-        scoring: str | None = None,
-    ) -> float | ArrayLike:
-        """Get Cross Validation score.
-
-        Scoring paramers overview: https://scikit-learn.org/stable/modules/model_evaluation.html#string-name-scorers
-        """  # noqa: E501
-        return cross_val_score(self.estimator, X, y, cv=cv, scoring=scoring)
 
     def oob_score(
         self, X: ArrayLike, y: ArrayLike, scoring: str | None = None
