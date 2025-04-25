@@ -1,16 +1,16 @@
-"""Module for sparse Gaussian process for multi-output regeression problem.
+"""Module for sparse Gaussian process for multi-output regeression problem."""
 
-
-"""
-
-from typing import Any, Iterable
-import pandas as pd
-from sklearn.metrics import check_scoring
-import torch
+from collections.abc import Iterable
+from typing import Any
 import gpytorch
-from torch.utils.data import TensorDataset, DataLoader
+import pandas as pd
+import torch
 from numpy.typing import ArrayLike
-from sklearn.base import BaseEstimator, RegressorMixin
+from sklearn.base import BaseEstimator
+from sklearn.base import RegressorMixin
+from sklearn.metrics import check_scoring
+from torch.utils.data import DataLoader
+from torch.utils.data import TensorDataset
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -51,11 +51,15 @@ class MultitaskGPModelApproximate(gpytorch.models.ApproximateGP):
             batch_shape=torch.Size([num_latents])
         )
         # Mean module
-        self.mean_module = gpytorch.means.ConstantMean(batch_shape=torch.Size([num_latents]))
+        self.mean_module = gpytorch.means.ConstantMean(
+            batch_shape=torch.Size([num_latents])
+        )
 
-        self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=num_tasks).to(device)
+        self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(
+            num_tasks=num_tasks).to(device)
 
     def forward(self, x):
+        """Forward pass of the model."""
         mean_x = self.mean_module(x)
         covar_x = self.covar_module(x)
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
@@ -64,7 +68,7 @@ class MultitaskGPModelApproximate(gpytorch.models.ApproximateGP):
 class SklearnGPRegressor(BaseEstimator, RegressorMixin):
     """Sklearn Wrapper for MultitaskGPModelApproximate."""
     def __init__(self, inducing_points, num_latents, num_tasks,
-                 num_epochs=100, batch_size=1024, learning_rate=0.01):
+                 num_epochs=10, batch_size=1024, learning_rate=0.01):
         self.inducing_points = inducing_points.to(device)
         self.num_latents = num_latents
         self.num_tasks = num_tasks
@@ -85,29 +89,33 @@ class SklearnGPRegressor(BaseEstimator, RegressorMixin):
 
         self.likelihood = self.model.likelihood  # already initialized inside model
 
-    def fit(self, X, y):
-
-        X, y = _get_tensorlike(X), _get_tensorlike(y)
+    def fit(self, x_train: ArrayLike, y_train: ArrayLike
+        ) -> "SklearnGPRegressor":
+        """Fit the model to the training data."""
+        x_train, y_train = _get_tensorlike(x_train), _get_tensorlike(y_train)
 
         self._initialize_model()
         self.model.train()
         self.likelihood.train()
 
-        optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
-        mll = gpytorch.mlls.VariationalELBO(self.likelihood, self.model, num_data=X.size(0))
+        optimizer = torch.optim.Adam(
+            self.model.parameters(), lr=self.learning_rate
+            )
+        # marginal log likelihood (mll)
+        mll = gpytorch.mlls.VariationalELBO(
+            self.likelihood, self.model, num_data=x_train.size(0)
+            )
 
         # TODO optimize the loops
         for epoch in range(self.num_epochs):
             total_loss = 0
             if self.batch_size:  # Use batching if batch_size is set
-                train_loader = DataLoader(
-                    TensorDataset(X, y),
+                batches = DataLoader(
+                    TensorDataset(x_train, y_train),
                     batch_size=self.batch_size,
-                    shuffle=True
                 )
-                batches = train_loader
             else:  # Treat entire dataset as one batch
-                batches = [(X, y)]
+                batches = [(x_train, y_train)]
             for x_batch, y_batch in batches:
                 optimizer.zero_grad()
                 output = self.model(x_batch)
@@ -116,30 +124,32 @@ class SklearnGPRegressor(BaseEstimator, RegressorMixin):
                 optimizer.step()
                 total_loss += loss.item()
 
+            # normalize the loss per data point and output dimension because it
+            # gives a better idea of the loss in print statement
+            ave_loss = total_loss / (x_train.size(0) * y_train.size(1))
+
             # TODO pass this print to logger in mlflow
-            print(f"Epoch {epoch + 1}/{self.num_epochs} - Loss: {total_loss:.3f}")
+            print(f"Epoch {epoch + 1}/{self.num_epochs} - Loss: {ave_loss:.3f}")
 
         return self
 
-    def predict(self, X):
-
+    def predict(self, x_array: ArrayLike) -> ArrayLike:
+        """Make predictions using the trained model."""
         self.model.eval()
         self.likelihood.eval()
 
-        X = _get_tensorlike(X)
+        x_array = _get_tensorlike(x_array)
 
         all_preds = []
         with torch.no_grad():
             if self.batch_size:  # Use batching if batch_size is set
-                test_loader = DataLoader(
-                    TensorDataset(X),
+                batches = DataLoader(
+                    TensorDataset(x_array),
                     batch_size=self.batch_size,
-                    shuffle=False
                 )
-                batches = test_loader
             else:  # Treat entire dataset as one batch
-                batches = [X]
-            for x_batch in batches:
+                batches = [(x_array,)]
+            for (x_batch,) in batches:
                 predictions = self.likelihood(self.model(x_batch))
                 all_preds.append(predictions.mean.cpu())
 
@@ -174,7 +184,12 @@ class SparseGussianModel:
         ) -> float | ArrayLike:
             """Fit and calculate a score.
 
-            Scoring paramers overview: https://scikit-learn.org/stable/modules/model_evaluation.html#string-name-scorers
+            In multi-output regression, by default, 'uniform_average' is used,
+            which specifies a uniformly weighted mean over outputs. see
+            https://scikit-learn.org/stable/modules/model_evaluation.html#regression-metrics
+
+            For scoring paramers overview:
+            https://scikit-learn.org/stable/modules/model_evaluation.html#string-name-scorers
             """  # noqa: E501
             self.estimator.fit(x_train, y_train)
             scorer = check_scoring(self.estimator, scoring=scoring)
