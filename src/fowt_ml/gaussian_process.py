@@ -155,7 +155,7 @@ class SklearnGPRegressor(BaseEstimator, RegressorMixin):
 
         return torch.cat(all_preds, dim=0).numpy()
 
-class SparseGussianModel:
+class SparseGaussianModel:
     """Class to handle sparse Gaussian process regression."""
     ESTIMATOR_NAMES = {
         "SklearnGPRegressor": SklearnGPRegressor,
