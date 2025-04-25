@@ -25,6 +25,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
+    "gpytorch", # for Sparse Gaussian processes
     "h5py",
     "mlflow",
     "numpy",
