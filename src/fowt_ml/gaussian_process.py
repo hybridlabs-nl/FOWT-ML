@@ -14,6 +14,7 @@ from torch.utils.data import TensorDataset
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
 class MultitaskGPModelApproximate(gpytorch.models.ApproximateGP):
     """Multitask GP model with approximate inference.
 
@@ -22,13 +23,14 @@ class MultitaskGPModelApproximate(gpytorch.models.ApproximateGP):
     on example
     https://docs.gpytorch.ai/en/stable/examples/04_Variational_and_Approximate_GPs/SVGP_Multitask_GP_Regression.html#Types-of-Variational-Multitask-Models
     """
+
     def __init__(self, inducing_points, num_latents, num_tasks):
         # Variational distribution + strategy: posterior for latent GPs
         # CholeskyVariationalDistribution: modeling a full covariance (not
         # diagonal), so it can capture dependencies between inducing points
         variational_distribution = gpytorch.variational.CholeskyVariationalDistribution(
-            num_inducing_points=inducing_points.size(1), # first dim is latents
-            batch_shape=torch.Size([num_latents])
+            num_inducing_points=inducing_points.size(1),  # first dim is latents
+            batch_shape=torch.Size([num_latents]),
         )
 
         # model correlations across tasks (or outputs)
@@ -41,22 +43,23 @@ class MultitaskGPModelApproximate(gpytorch.models.ApproximateGP):
             ),
             num_tasks=num_tasks,
             num_latents=num_latents,
-            latent_dim=-1
+            latent_dim=-1,
         )
         super().__init__(variational_strategy)
 
         # covariance module: kernel: Prior information about latents
         self.covar_module = gpytorch.kernels.ScaleKernel(
             gpytorch.kernels.RBFKernel(batch_shape=torch.Size([num_latents])),
-            batch_shape=torch.Size([num_latents])
+            batch_shape=torch.Size([num_latents]),
         )
         # Mean module
         self.mean_module = gpytorch.means.ConstantMean(
-            batch_shape=torch.Size([num_latents])
+            batch_shape=torch.Size([num_latents]),
         )
 
         self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(
-            num_tasks=num_tasks).to(device)
+            num_tasks=num_tasks
+        ).to(device)
 
     def forward(self, x):
         """Forward pass of the model."""
@@ -67,8 +70,16 @@ class MultitaskGPModelApproximate(gpytorch.models.ApproximateGP):
 
 class SklearnGPRegressor(BaseEstimator, RegressorMixin):
     """Sklearn Wrapper for MultitaskGPModelApproximate."""
-    def __init__(self, inducing_points, num_latents, num_tasks,
-                 num_epochs=10, batch_size=1024, learning_rate=0.01):
+
+    def __init__(
+        self,
+        inducing_points,
+        num_latents,
+        num_tasks,
+        num_epochs=10,
+        batch_size=1024,
+        learning_rate=0.01,
+    ):
         self.inducing_points = inducing_points.to(device)
         self.num_latents = num_latents
         self.num_tasks = num_tasks
@@ -76,7 +87,6 @@ class SklearnGPRegressor(BaseEstimator, RegressorMixin):
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.device = device
-
         self.model = None
         self.likelihood = None
 
@@ -89,8 +99,7 @@ class SklearnGPRegressor(BaseEstimator, RegressorMixin):
 
         self.likelihood = self.model.likelihood  # already initialized inside model
 
-    def fit(self, x_train: ArrayLike, y_train: ArrayLike
-        ) -> "SklearnGPRegressor":
+    def fit(self, x_train: ArrayLike, y_train: ArrayLike) -> "SklearnGPRegressor":
         """Fit the model to the training data."""
         x_train, y_train = _get_tensorlike(x_train), _get_tensorlike(y_train)
 
@@ -98,13 +107,11 @@ class SklearnGPRegressor(BaseEstimator, RegressorMixin):
         self.model.train()
         self.likelihood.train()
 
-        optimizer = torch.optim.Adam(
-            self.model.parameters(), lr=self.learning_rate
-            )
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
         # marginal log likelihood (mll)
         mll = gpytorch.mlls.VariationalELBO(
             self.likelihood, self.model, num_data=x_train.size(0)
-            )
+        )
 
         # TODO optimize the loops
         for epoch in range(self.num_epochs):
@@ -155,8 +162,10 @@ class SklearnGPRegressor(BaseEstimator, RegressorMixin):
 
         return torch.cat(all_preds, dim=0).numpy()
 
+
 class SparseGaussianModel:
     """Class to handle sparse Gaussian process regression."""
+
     ESTIMATOR_NAMES = {
         "SklearnGPRegressor": SklearnGPRegressor,
     }
@@ -164,36 +173,33 @@ class SparseGaussianModel:
     def __init__(
         self, estimator: str | BaseEstimator, **kwargs: dict[str, Any]
     ) -> None:
-
         if isinstance(estimator, str):
             if estimator not in self.ESTIMATOR_NAMES:
-                raise ValueError(
-                    f"Available estimators: {self.ESTIMATOR_NAMES.keys()}"
-                )
+                raise ValueError(f"Available estimators: {self.ESTIMATOR_NAMES.keys()}")
             self.estimator = self.ESTIMATOR_NAMES[estimator](**kwargs)
         else:
             self.estimator = estimator.set_params(**kwargs)
 
     def calculate_score(
-            self,
-            x_train: ArrayLike,
-            x_test: ArrayLike,
-            y_train: ArrayLike,
-            y_test: ArrayLike,
-            scoring: str | Iterable | None = None,
-        ) -> float | ArrayLike:
-            """Fit and calculate a score.
+        self,
+        x_train: ArrayLike,
+        x_test: ArrayLike,
+        y_train: ArrayLike,
+        y_test: ArrayLike,
+        scoring: str | Iterable | None = None,
+    ) -> float | ArrayLike:
+        """Fit and calculate a score.
 
-            In multi-output regression, by default, 'uniform_average' is used,
-            which specifies a uniformly weighted mean over outputs. see
-            https://scikit-learn.org/stable/modules/model_evaluation.html#regression-metrics
+        In multi-output regression, by default, 'uniform_average' is used,
+        which specifies a uniformly weighted mean over outputs. see
+        https://scikit-learn.org/stable/modules/model_evaluation.html#regression-metrics
 
-            For scoring paramers overview:
-            https://scikit-learn.org/stable/modules/model_evaluation.html#string-name-scorers
-            """  # noqa: E501
-            self.estimator.fit(x_train, y_train)
-            scorer = check_scoring(self.estimator, scoring=scoring)
-            return scorer(self.estimator, x_test, y_test)
+        For scoring paramers overview:
+        https://scikit-learn.org/stable/modules/model_evaluation.html#string-name-scorers
+        """  # noqa: E501
+        self.estimator.fit(x_train, y_train)
+        scorer = check_scoring(self.estimator, scoring=scoring)
+        return scorer(self.estimator, x_test, y_test)
 
 
 def _get_tensorlike(array: ArrayLike) -> torch.Tensor:

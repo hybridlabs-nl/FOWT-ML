@@ -8,6 +8,7 @@ from fowt_ml.gaussian_process import SparseGaussianModel
 # Set the random seed for reproducibility
 torch.manual_seed(42)
 
+
 @pytest.fixture
 def simple_dataset():
     """Create a simple dataset for testing."""
@@ -15,24 +16,31 @@ def simple_dataset():
 
     a = x_train[:, 0] * (2 * math.pi)
     b = x_train[:, 1] * (2 * math.pi)
-    y_train = torch.stack([
-        torch.sin(a) + torch.randn(100) * 0.2,
-        torch.cos(a) + torch.randn(100) * 0.2,
-        torch.sin(b) + 2 * torch.cos(b) + torch.randn(100) * 0.2,
-        -torch.cos(b) + torch.randn(100) * 0.2,
-    ], -1)
+    y_train = torch.stack(
+        [
+            torch.sin(a) + torch.randn(100) * 0.2,
+            torch.cos(a) + torch.randn(100) * 0.2,
+            torch.sin(b) + 2 * torch.cos(b) + torch.randn(100) * 0.2,
+            -torch.cos(b) + torch.randn(100) * 0.2,
+        ],
+        -1,
+    )
 
     x_test = torch.rand(50, 2)
     a = x_test[:, 0] * (2 * math.pi)
     b = x_test[:, 1] * (2 * math.pi)
-    y_test = torch.stack([
-        torch.sin(a) + torch.randn(50) * 0.2,
-        torch.cos(a) + torch.randn(50) * 0.2,
-        torch.sin(b) + 2 * torch.cos(b) + torch.randn(50) * 0.2,
-        -torch.cos(b) + torch.randn(50) * 0.2,
-    ], -1)
+    y_test = torch.stack(
+        [
+            torch.sin(a) + torch.randn(50) * 0.2,
+            torch.cos(a) + torch.randn(50) * 0.2,
+            torch.sin(b) + 2 * torch.cos(b) + torch.randn(50) * 0.2,
+            -torch.cos(b) + torch.randn(50) * 0.2,
+        ],
+        -1,
+    )
 
     return x_train, x_test, y_train, y_test
+
 
 class TestSparseGaussianModel:
     def test_init_estimator_sklearn(self):
@@ -61,7 +69,7 @@ class TestSparseGaussianModel:
         params = {
             "inducing_points": inducing_points,
             "num_latents": 1,
-            "num_tasks":4,
+            "num_tasks": 4,
             "num_epochs": 1,
             "batch_size": 10,
         }
