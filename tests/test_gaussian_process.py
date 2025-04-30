@@ -1,7 +1,9 @@
 import math
+from functools import partial
 import numpy as np
 import pytest
 import torch
+from sklearn.utils.estimator_checks import parametrize_with_checks
 from fowt_ml.gaussian_process import SklearnGPRegressor
 from fowt_ml.gaussian_process import SparseGaussianModel
 
@@ -38,13 +40,16 @@ def simple_dataset():
         ],
         -1,
     )
-
     return x_train, x_test, y_train, y_test
 
 
 class TestSparseGaussianModel:
     def test_init_estimator_sklearn(self):
-        model = SparseGaussianModel("SklearnGPRegressor")
+        params = {
+            "num_inducing": 25,
+            "num_latents": 1,
+        }
+        model = SparseGaussianModel("SklearnGPRegressor", **params)
         assert isinstance(model.estimator, SklearnGPRegressor)
 
     def test_init_estimator_invalid(self):
@@ -53,23 +58,25 @@ class TestSparseGaussianModel:
         assert "Available estimators" in str(e.value)
 
     def test_init_with_estimator_instance(self):
-        model = SparseGaussianModel(SklearnGPRegressor())
+        estimator = SklearnGPRegressor(25, 1)
+        model = SparseGaussianModel(estimator)
         assert isinstance(model.estimator, SklearnGPRegressor)
 
     def test_init_with_kwargs(self):
-        model = SparseGaussianModel("SklearnGPRegressor", num_latents=3)
-        assert model.estimator.num_latents == 3
+        params = {
+            "num_inducing": 25,
+            "num_latents": 1,
+            "batch_size": 10,
+        }
+        model = SparseGaussianModel("SklearnGPRegressor", **params)
+        assert model.estimator.batch_size == 10
 
     def test_calculate_score_rmse(self, simple_dataset):
         x_train, x_test, y_train, y_test = simple_dataset
 
-        inducing_points = x_train[torch.randperm(x_train.size(0))[:25]]
-        inducing_points = inducing_points.unsqueeze(0).repeat(1, 1, 1).clone()
-
         params = {
-            "inducing_points": inducing_points,
+            "num_inducing": 25,
             "num_latents": 1,
-            "num_tasks": 4,
             "num_epochs": 1,
             "batch_size": 10,
         }
@@ -77,4 +84,28 @@ class TestSparseGaussianModel:
         results = model.calculate_score(
             x_train, x_test, y_train, y_test, "neg_mean_squared_error"
         )
-        np.testing.assert_almost_equal(results, -1.1028, decimal=3)
+        np.testing.assert_almost_equal(results, -1.102, decimal=3)
+
+
+def dummy_estimator():
+    return SklearnGPRegressor(100, 1, num_epochs=1, batch_size=10)
+
+
+@parametrize_with_checks([dummy_estimator()])
+def test_sklearn_compatibility(estimator, check):
+    exclude_checks = [
+        "check_regressors_train",
+        "check_fit_idempotent",
+        "check_fit_score_takes_y",
+        "check_supervised_y_2d",
+        # These assume predict returns 1D y, not multi-output
+        "check_regressor_data_not_an_array",
+        "check_regressors_int",
+        # Some other tests that may break due to GPyTorch-specific behavior
+        "check_dtypes",
+        "check_n_features_in_after_fitting",
+        "check_dtype_object",
+    ]
+    check_name = check.func.__name__ if isinstance(check, partial) else check.__name__
+    if check_name not in exclude_checks:
+        check(estimator)
