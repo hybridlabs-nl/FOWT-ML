@@ -6,9 +6,7 @@ import torch
 from sklearn.utils.estimator_checks import parametrize_with_checks
 from fowt_ml.gaussian_process import SklearnGPRegressor
 from fowt_ml.gaussian_process import SparseGaussianModel
-
-# Set the random seed for reproducibility
-torch.manual_seed(42)
+from fowt_ml.gaussian_process import MultitaskGPModelApproximate
 
 
 @pytest.fixture
@@ -109,3 +107,53 @@ def test_sklearn_compatibility(estimator, check):
     check_name = check.func.__name__ if isinstance(check, partial) else check.__name__
     if check_name not in exclude_checks:
         check(estimator)
+
+
+class TestSklearnGPRegressor:
+    def test_init(self):
+        model = SklearnGPRegressor(num_inducing=25, num_latents=1)
+        assert model.num_inducing == 25
+        assert model.num_latents == 1
+
+    def test_fit(self, simple_dataset):
+        x_train, _, y_train, _ = simple_dataset
+        model = SklearnGPRegressor(num_inducing=25, num_latents=1)
+        model.fit(x_train, y_train)
+        assert hasattr(model, "model_")
+        assert hasattr(model, "likelihood_")
+        assert hasattr(model, "n_features_in_")
+        assert model.is_fitted_
+
+    def test_predict(self, simple_dataset):
+        x_train, x_test, y_train, _ = simple_dataset
+        model = SklearnGPRegressor(num_inducing=25, num_latents=1)
+        model.fit(x_train, y_train)
+        predictions = model.predict(x_test)
+        assert predictions.shape == (50, 4)
+
+
+class TestMultitaskGPModelApproximate:
+    def test_init(self):
+        inducing_points = torch.rand(25, 2)
+        model = MultitaskGPModelApproximate(
+            inducing_points=inducing_points,
+            num_latents=1,
+            num_tasks=4,
+        )
+        assert hasattr(model, "variational_strategy")
+        assert hasattr(model, "covar_module")
+        assert hasattr(model, "mean_module")
+        assert hasattr(model, "likelihood")
+        assert model.variational_strategy.num_latents == 1
+        assert model.variational_strategy.num_tasks == 4
+        assert model.mean_module(inducing_points).shape == torch.Size([1, 25])
+        assert model.covar_module(inducing_points).shape == torch.Size([1, 25, 25])
+
+    def test_forward(self):
+        inducing_points = torch.rand(15, 2)
+        model = MultitaskGPModelApproximate(
+            inducing_points=inducing_points,
+            num_latents=1,
+            num_tasks=4,
+        )
+        assert model.forward(inducing_points).loc.shape == torch.Size([1, 15])
