@@ -6,7 +6,6 @@ from typing import Any
 import gpytorch
 import pandas as pd
 import torch
-from typing import Union
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator
 from sklearn.base import RegressorMixin
@@ -245,7 +244,7 @@ class SparseGaussianModel:
         return scorer(self.estimator, x_test, y_test)
 
 
-def _get_tensorlike(array: Union[ArrayLike, pd.DataFrame]) -> torch.Tensor:
+def _get_tensorlike(array: ArrayLike | pd.DataFrame) -> torch.Tensor:
     """Convert numpy array to tensor."""
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if isinstance(array, torch.Tensor):
