@@ -4,9 +4,9 @@ import numpy as np
 import pytest
 import torch
 from sklearn.utils.estimator_checks import parametrize_with_checks
+from fowt_ml.gaussian_process import MultitaskGPModelApproximate
 from fowt_ml.gaussian_process import SklearnGPRegressor
 from fowt_ml.gaussian_process import SparseGaussianModel
-from fowt_ml.gaussian_process import MultitaskGPModelApproximate
 
 
 @pytest.fixture
