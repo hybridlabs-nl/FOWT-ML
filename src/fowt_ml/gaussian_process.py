@@ -19,6 +19,9 @@ from torch.utils.data import TensorDataset
 
 logger = Logger(__name__)
 
+# Set the random seed for reproducibility
+torch.manual_seed(42)
+
 
 class MultitaskGPModelApproximate(gpytorch.models.ApproximateGP):
     """Multitask GP model with approximate inference.
