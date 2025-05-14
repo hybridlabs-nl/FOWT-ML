@@ -8,6 +8,9 @@ from fowt_ml.gaussian_process import MultitaskGPModelApproximate
 from fowt_ml.gaussian_process import SklearnGPRegressor
 from fowt_ml.gaussian_process import SparseGaussianModel
 
+# Set the random seed for reproducibility
+torch.manual_seed(42)
+
 
 @pytest.fixture
 def simple_dataset():
@@ -91,15 +94,15 @@ def dummy_estimator():
 
 @parametrize_with_checks([dummy_estimator()])
 def test_sklearn_compatibility(estimator, check):
+    # some of these checks assmues predict returns 1D y, not multi-output and
+    # some of these checks may break due to GPyTorch-specific behavior
     exclude_checks = [
         "check_regressors_train",
         "check_fit_idempotent",
         "check_fit_score_takes_y",
         "check_supervised_y_2d",
-        # These assume predict returns 1D y, not multi-output
         "check_regressor_data_not_an_array",
         "check_regressors_int",
-        # Some other tests that may break due to GPyTorch-specific behavior
         "check_dtypes",
         "check_n_features_in_after_fitting",
         "check_dtype_object",
