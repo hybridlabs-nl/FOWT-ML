@@ -6,6 +6,7 @@ from typing import Any
 import gpytorch
 import pandas as pd
 import torch
+from typing import Union
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator
 from sklearn.base import RegressorMixin
@@ -244,16 +245,15 @@ class SparseGaussianModel:
         return scorer(self.estimator, x_test, y_test)
 
 
-def _get_tensorlike(array: ArrayLike) -> torch.Tensor:
+def _get_tensorlike(array: Union[ArrayLike, pd.DataFrame]) -> torch.Tensor:
     """Convert numpy array to tensor."""
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if isinstance(array, torch.Tensor):
         return array
+    elif isinstance(array, pd.DataFrame):
+        return torch.tensor(array.values, dtype=torch.float32).to(device)
     elif isinstance(array, Iterable):
-        if isinstance(array, pd.DataFrame):
-            return torch.tensor(array.values, dtype=torch.float32).to(device)
-        else:
-            return torch.tensor(array, dtype=torch.float32).to(device)
+        return torch.tensor(array, dtype=torch.float32).to(device)
     else:
         raise ValueError("Input must be a numpy array or a list.")
 
