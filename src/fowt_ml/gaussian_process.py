@@ -1,6 +1,7 @@
 """Module for sparse Gaussian process for multi-output regeression problem."""
 
 from collections.abc import Iterable
+from logging import Logger
 from typing import Any
 import gpytorch
 import pandas as pd
@@ -15,6 +16,8 @@ from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.validation import check_X_y
 from torch.utils.data import DataLoader
 from torch.utils.data import TensorDataset
+
+logger = Logger(__name__)
 
 
 class MultitaskGPModelApproximate(gpytorch.models.ApproximateGP):
@@ -152,11 +155,9 @@ class SklearnGPRegressor(RegressorMixin, BaseEstimator):
                 total_loss += loss.item()
 
             # normalize the loss per data point and output dimension because it
-            # gives a better idea of the loss in print statement
+            # gives a better idea of the loss in log
             ave_loss = total_loss / (x_train.size(0) * y_train.size(1))
-
-            # TODO pass this print to logger in mlflow
-            print(f"Epoch {epoch + 1}/{self.num_epochs} - Loss: {ave_loss:.3f}")
+            logger.info(f"Epoch {epoch + 1}/{self.num_epochs} - Loss: {ave_loss:.3f}")
 
         self.is_fitted_ = True
         return self
