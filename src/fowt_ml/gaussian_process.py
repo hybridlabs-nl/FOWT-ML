@@ -6,7 +6,6 @@ from typing import Any
 import gpytorch
 import pandas as pd
 import torch
-import numpy as np
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator
 from sklearn.base import RegressorMixin
