@@ -6,6 +6,7 @@ from typing import Any
 import gpytorch
 import pandas as pd
 import torch
+import numpy as np
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator
 from sklearn.base import RegressorMixin
@@ -99,6 +100,19 @@ class SklearnGPRegressor(RegressorMixin, BaseEstimator):
         self.num_epochs = num_epochs
         self.batch_size = batch_size
         self.learning_rate = learning_rate
+
+        # sklearn multioutput regressor expects float64
+        # see check_multioutput_regressor
+        torch.set_default_dtype(torch.float64)
+
+    def __sklearn_tags__(self):
+        tags = super().__sklearn_tags__()
+        tags.target_tags.two_d_labels = True
+        tags.target_tags.multi_output = True
+        tags.non_deterministic = True
+        tags.requires_fit = True
+        tags.input_tags.three_d_array = True
+        return tags
 
     def fit(self, x_train: ArrayLike, y_train: ArrayLike) -> "SklearnGPRegressor":
         """Fit the model to the training data."""
@@ -247,14 +261,15 @@ class SparseGaussianModel:
 def _get_tensorlike(array: ArrayLike | pd.DataFrame) -> torch.Tensor:
     """Convert numpy array to tensor."""
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    dtype = torch.get_default_dtype()
     if isinstance(array, torch.Tensor):
-        return array
+        return array.to(device)
     elif isinstance(array, pd.DataFrame):
-        return torch.tensor(array.values, dtype=torch.float32).to(device)
+        return torch.tensor(array.values, dtype=dtype).to(device)
     elif isinstance(array, Iterable):
-        return torch.tensor(array, dtype=torch.float32).to(device)
+        return torch.tensor(array, dtype=dtype).to(device)
     else:
-        raise ValueError("Input must be a numpy array or a list.")
+        raise ValueError("Input must be ArrayLike or pd.DataFrame.")
 
 
 def _check_inducing_points(x: torch.Tensor, num_latents: int) -> torch.Tensor:

@@ -94,8 +94,8 @@ def dummy_estimator():
 
 @parametrize_with_checks([dummy_estimator()])
 def test_sklearn_compatibility(estimator, check):
-    # some of these checks assmues predict returns 1D y, not multi-output and
-    # some of these checks may break due to GPyTorch-specific behavior
+    # some of these checks may break due to GPyTorch-specific behavior and the
+    # wrapper implementation
     exclude_checks = [
         "check_regressors_train",
         "check_fit_idempotent",
@@ -103,7 +103,6 @@ def test_sklearn_compatibility(estimator, check):
         "check_supervised_y_2d",
         "check_regressor_data_not_an_array",
         "check_regressors_int",
-        "check_dtypes",
         "check_n_features_in_after_fitting",
         "check_dtype_object",
     ]
