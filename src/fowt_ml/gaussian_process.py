@@ -22,6 +22,7 @@ logger = Logger(__name__)
 # Set the random seed for reproducibility
 torch.manual_seed(42)
 
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class MultitaskGPModelApproximate(gpytorch.models.ApproximateGP):
     """Multitask GP model with approximate inference.
@@ -71,10 +72,9 @@ class MultitaskGPModelApproximate(gpytorch.models.ApproximateGP):
             batch_shape=torch.Size([num_latents]),
         )
 
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(
             num_tasks=num_tasks
-        ).to(device)
+        ).to(DEVICE)
 
     def forward(self, x):
         """Forward pass of the model."""
@@ -130,15 +130,13 @@ class SklearnGPRegressor(RegressorMixin, BaseEstimator):
         if y_train.ndim == 1:
             y_train = y_train.unsqueeze(1)
 
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
         inducing_points = x_train[torch.randperm(x_train.size(0))[: self.num_inducing]]
 
         self.model_ = MultitaskGPModelApproximate(
             inducing_points=inducing_points,
             num_latents=self.num_latents,
             num_tasks=y_train.size(1),
-        ).to(device)
+        ).to(DEVICE)
 
         self.likelihood_ = self.model_.likelihood
 
@@ -259,14 +257,13 @@ class SparseGaussianModel:
 
 def _get_tensorlike(array: ArrayLike | pd.DataFrame) -> torch.Tensor:
     """Convert numpy array to tensor."""
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     dtype = torch.get_default_dtype()
     if isinstance(array, torch.Tensor):
-        return array.to(device)
+        return array.to(DEVICE)
     elif isinstance(array, pd.DataFrame):
-        return torch.tensor(array.values, dtype=dtype).to(device)
+        return torch.tensor(array.values, dtype=dtype).to(DEVICE)
     elif isinstance(array, Iterable):
-        return torch.tensor(array, dtype=dtype).to(device)
+        return torch.tensor(array, dtype=dtype).to(DEVICE)
     else:
         raise ValueError("Input must be ArrayLike or pd.DataFrame.")
 
