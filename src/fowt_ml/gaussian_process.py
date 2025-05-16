@@ -24,6 +24,7 @@ torch.manual_seed(42)
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
 class MultitaskGPModelApproximate(gpytorch.models.ApproximateGP):
     """Multitask GP model with approximate inference.
 
