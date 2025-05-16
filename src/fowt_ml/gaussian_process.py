@@ -35,7 +35,7 @@ class MultitaskGPModelApproximate(gpytorch.models.ApproximateGP):
 
     def __init__(self, inducing_points, num_latents, num_tasks):
         # convert inducing points to tensor
-        inducing_points = _get_tensorlike(inducing_points)
+        inducing_points = _to_tensor(inducing_points)
 
         # Variational distribution + strategy: posterior for latent GPs
         # CholeskyVariationalDistribution: modeling a full covariance (not
@@ -118,8 +118,8 @@ class SklearnGPRegressor(RegressorMixin, BaseEstimator):
         # Check that X and y have correct shape
         x_train, y_train = check_X_y(x_train, y_train, multi_output=True)
 
-        x_train = _get_tensorlike(x_train)
-        y_train = _get_tensorlike(y_train)
+        x_train = _to_tensor(x_train)
+        y_train = _to_tensor(y_train)
 
         # add some sklearn variables
         self.X_ = x_train
@@ -190,7 +190,7 @@ class SklearnGPRegressor(RegressorMixin, BaseEstimator):
                 f"Expected {self.n_features_in_} features, "
                 f"but got {x_array.shape[1]} features."
             )
-        x_array = _get_tensorlike(x_array)
+        x_array = _to_tensor(x_array)
 
         self.model_.eval()
         self.likelihood_.eval()
@@ -255,7 +255,7 @@ class SparseGaussianModel:
         return scorer(self.estimator, x_test, y_test)
 
 
-def _get_tensorlike(array: ArrayLike | pd.DataFrame) -> torch.Tensor:
+def _to_tensor(array: ArrayLike | pd.DataFrame) -> torch.Tensor:
     """Convert numpy array to tensor."""
     dtype = torch.get_default_dtype()
     if isinstance(array, torch.Tensor):
