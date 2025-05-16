@@ -62,12 +62,12 @@ class MultitaskGPModelApproximate(gpytorch.models.ApproximateGP):
         super().__init__(variational_strategy)
 
         # covariance module: kernel: Prior information about latents
-        self.covar_module = gpytorch.kernels.ScaleKernel(
+        self.covar = gpytorch.kernels.ScaleKernel(
             gpytorch.kernels.RBFKernel(batch_shape=torch.Size([num_latents])),
             batch_shape=torch.Size([num_latents]),
         )
         # Mean module
-        self.mean_module = gpytorch.means.ConstantMean(
+        self.mean = gpytorch.means.ConstantMean(
             batch_shape=torch.Size([num_latents]),
         )
 
@@ -78,8 +78,8 @@ class MultitaskGPModelApproximate(gpytorch.models.ApproximateGP):
 
     def forward(self, x):
         """Forward pass of the model."""
-        mean_x = self.mean_module(x)
-        covar_x = self.covar_module(x)
+        mean_x = self.mean(x)
+        covar_x = self.covar(x)
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
 
 

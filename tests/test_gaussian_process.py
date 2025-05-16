@@ -143,13 +143,13 @@ class TestMultitaskGPModelApproximate:
             num_tasks=4,
         )
         assert hasattr(model, "variational_strategy")
-        assert hasattr(model, "covar_module")
-        assert hasattr(model, "mean_module")
+        assert hasattr(model, "covar")
+        assert hasattr(model, "mean")
         assert hasattr(model, "likelihood")
         assert model.variational_strategy.num_latents == 1
         assert model.variational_strategy.num_tasks == 4
-        assert model.mean_module(inducing_points).shape == torch.Size([1, 25])
-        assert model.covar_module(inducing_points).shape == torch.Size([1, 25, 25])
+        assert model.mean(inducing_points).shape == torch.Size([1, 25])
+        assert model.covar(inducing_points).shape == torch.Size([1, 25, 25])
 
     def test_forward(self):
         inducing_points = torch.rand(15, 2)
