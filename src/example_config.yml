@@ -33,22 +33,19 @@ ml_setup:
       'spd_rot_act',
       'wind_speed',
       ]
-  save_grid_scores: True
-  save_best_model: True
+  save_grid_scores: False
+  save_best_model: False
+  log_experiment: False
   n_jobs: 2
   use_gpu: False
-  train_size: 0.7
-  models: [  # models that supports multi-output regression
-      "en", # Elastic Net
-      "lar", # Least Angle Regression
-      "llar", # LassoLars Regression
-      "lasso", # Lasso Regression
-      "lr", # Linear Regression
-      "ridge", # Ridge Regression
-      "omp", # Orthogonal Matching Pursuit
-      "ransac", # Random Sample Consensus
-      ]
-  metrics_sort : "R2"  # or TT for time in seconds,
-  system_log: "./logs.log"
+  train_test_split_kwargs: {"train_size": 0.75, "shuffle": True, "random_state": 42}
+  model_names: {  # models that supports multi-output regression
+      "ElasticNetRegression": {}, # Elastic Net
+      "LeastAngleRegression": {}, # Least Angle Regression
+      "LassoRegression": {}, # Lasso Regression
+      "LinearRegression": {}, # Linear Regression
+  }
+  metric_names : ["neg_mean_squared_error", "neg_root_mean_squared_error", "r2"]  # or TT for time in seconds,
+  system_log: "./logs.log"  # pytorch!
 session_setup:
   work_dir: "."
