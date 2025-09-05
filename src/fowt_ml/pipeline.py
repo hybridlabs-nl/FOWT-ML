@@ -9,6 +9,8 @@ from fowt_ml.datasets import get_data
 from fowt_ml.linear_models import LinearModels
 from fowt_ml.ensemble import EnsembleModel
 from fowt_ml.gaussian_process import SparseGaussianModel
+from skl2onnx import convert_sklearn
+from skl2onnx.common.data_types import FloatTensorType
 
 logger = logging.getLogger(__name__)
 
@@ -128,13 +130,43 @@ class Pipeline:
         scores = model.calculate_score(self.X_train, self.X_test, self.Y_train, self.Y_test, self.metric_names)
         return model.estimator, scores
 
-    def _log_model(self, model_name):
-        with mlflow.start_run(experiment_id=self.experiment_id):
-            mlflow.log_param("model_name", model_name)
-            # mlflow.log_metrics(self.scores[model_name])  #FIXME
-            mlflow.sklearn.log_model(self.fitted_models[model_name], model_name)
+    def _log_model(self):
+        if self.log_experiment:
+            logger.info(f"Logging experiment to MLflow with id {self.experiment_id}")
+            for model_name in self.model_names:
+                with mlflow.start_run(experiment_id=self.experiment_id):
+                    mlflow.log_param("model_name", model_name)
+                    mlflow.log_metrics(self.scores[model_name])
+                    input_example = self.X_train[:1]  # small slice of training data
+                    model = self.fitted_models[model_name]
+                    signature = mlflow.models.infer_signature(input_example, model.predict(input_example))
+                    mlflow.sklearn.log_model(
+                        model,
+                        model_name,
+                        signature=signature,
+                        input_example=input_example,
+                    )
 
-    def compare_models(self) -> Any:
+    def _save_grid_scores(self):
+        if self.save_grid_scores:
+            file_name = self.work_dir / "grid_scores.csv"
+            logger.info(f"Saving grid scores to {file_name}")
+            self.grid_scores_sorted.to_csv(file_name, index=False)
+
+    def _save_best_model(self):
+        if self.save_best_model:
+            best_model_name = self.grid_scores_sorted.index[0]
+            best_model = self.fitted_models[best_model_name]
+            file_name = self.work_dir / "best_model.onnx"
+
+            initial_type = [("input", FloatTensorType([None, len(self.predictors_labels)]))]
+            onnx_model = convert_sklearn(best_model, initial_types=initial_type)
+
+            logger.info("Saving best model to ONNX format in {file_name}")
+            with open(file_name, "wb") as f:
+                f.write(onnx_model.SerializeToString())
+
+    def compare_models(self, sort:str="r2") -> Any:
         """Compares the models and returns the best model.
 
         Returns:
@@ -143,31 +175,25 @@ class Pipeline:
 
         """
         self.fitted_models = {}
-        self.scores = []
+        self.scores = {}
         for model_name in self.model_names:
             fitted_model, scores = self._run_model(model_name)
             self.fitted_models[model_name] = fitted_model
-            self.scores.append({"model": model_name, **scores})
+            self.scores[model_name]= scores
 
-            if self.log_experiment:
-                self._log_model(model_name)
+        grid_scores = pd.DataFrame(self.scores).T
 
-        # if self.save_grid_scores:
-        #     raise NotImplementedError("Saving grid score is not implemented yet.")
-        #     # TODO: fix it
-        #     # session_setup = self.config["session_setup"]
-        #     # file_name = Path(session_setup["work_dir"]) / "grid_scores.csv"
-        #     # self.grid_scores = experiment.pull()
-        #     # self.grid_scores.to_csv(file_name, index=False)
-        #     # logger.info(f"Grid scores saved to {file_name}.")
+        if sort not in grid_scores.columns:
+            raise ValueError(
+                f"Default sort {sort} not in the metrics {grid_scores.columns.tolist()} provided."
+                " Choose one of the metrics to sort the models."
+                )
 
-        # if self.save_best_model:
-        #     raise NotImplementedError("Saving best model is not implemented yet.")
-        #     # TODO: fix it
-        #     # session_setup = self.config["session_setup"]
-        #     # file_name = Path(session_setup["work_dir"]) / "best_model.onnx"
-        #     # save_sklearn_to_onnx(file_name)
-        #     # logger.info(f"Best model saved to {file_name}.")
-        # raise NotImplementedError("Compare models is not implemented yet.")
+        ascending = sort == "model_fit_time"
+        self.grid_scores_sorted = grid_scores.sort_values(by=sort, ascending=ascending)
 
-        return self.fitted_models, pd.DataFrame(self.scores)
+        self._log_model()
+        self._save_grid_scores()
+        self._save_best_model()
+
+        return self.fitted_models, self.grid_scores_sorted
