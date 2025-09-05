@@ -1,7 +1,9 @@
 """Module to handle linear models."""
 
 from collections.abc import Iterable
+import time
 from typing import Any
+import numpy as np
 import sklearn.linear_model as lm
 import sklearn.metrics as sm
 from numpy.typing import ArrayLike
@@ -60,6 +62,21 @@ class LinearModels:
         Returns:
             float: the scoring value
         """
+        model_fit_start = time.time()
         self.estimator.fit(x_train, y_train)
-        scorer = sm.check_scoring(self.estimator, scoring=scoring)
-        return scorer(self.estimator, x_test, y_test)
+        model_fit_end = time.time()
+        model_fit_time = np.round(model_fit_end - model_fit_start, 2)
+
+        # if "model_fit_time" in scoring, remove it
+        if "model_fit_time" in scoring:
+            if isinstance(scoring, str):
+                scoring = [scoring]
+            _scoring = [s for s in scoring if s != "model_fit_time"]
+
+        scorer = sm.check_scoring(self.estimator, scoring=_scoring)
+        scorer_dict = scorer(self.estimator, x_test, y_test)
+
+        # if "model_fit_time" in original scoring, add it back
+        if "model_fit_time" in scoring:
+            scorer_dict["model_fit_time"] = model_fit_time
+        return scorer_dict
