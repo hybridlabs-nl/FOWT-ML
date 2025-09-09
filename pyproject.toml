@@ -48,6 +48,7 @@ dev = [
     "pytest-cov",
     "ruff",
     "mypy",
+    "onnxruntime",  # for running ONNX models
 ]
 docs = [
     "mkdocs",

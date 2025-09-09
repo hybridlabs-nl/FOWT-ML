@@ -1,4 +1,5 @@
 from pathlib import Path
+import numpy as np
 import pandas as pd
 from sklearn.utils.validation import check_is_fitted
 from fowt_ml.config import read_yaml
@@ -190,3 +191,28 @@ class TestPipelineCompare:
         _, scores = my_pipeline.compare_models(sort="model_fit_time")
         # check sorting of scores
         assert scores["model_fit_time"].iloc[0] <= scores["model_fit_time"].iloc[1]
+
+    def test_compare_models_onnx(self, tmp_path):
+        # create dummy files
+        config_file = tmp_path / "config.yaml"
+        mat_file = tmp_path / "data.mat"
+        creat_dummy_config(config_file, mat_file)
+        create_dummy_mat_file(mat_file)
+
+        # test setup
+        my_pipeline = Pipeline(config_file)
+        my_pipeline.setup(data="exp1")
+        model, scores = my_pipeline.compare_models()
+        best_model_name = scores.index[0]
+        fitted_model = model[best_model_name]
+        expected_pred = fitted_model.predict(my_pipeline.X_test)
+
+        # read the onnx model
+        import onnxruntime as rt
+        sess = rt.InferenceSession("best_model.onnx")
+        input_name = sess.get_inputs()[0].name
+        output_name = sess.get_outputs()[0].name
+        x = my_pipeline.X_test.to_numpy(dtype=np.float32)
+        actual_pred = sess.run([output_name], {input_name: x})[0]
+
+        np.testing.assert_allclose(expected_pred, actual_pred.flatten(), rtol=1e-5)
