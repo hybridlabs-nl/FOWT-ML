@@ -85,7 +85,7 @@ class TestSparseGaussianModel:
         results = model.calculate_score(
             x_train, x_test, y_train, y_test, "neg_mean_squared_error"
         )
-        np.testing.assert_almost_equal(results, -1.0103, decimal=3)
+        np.testing.assert_almost_equal(results["neg_mean_squared_error"], -1.0103, decimal=3)
 
 
 def dummy_estimator():

@@ -23,11 +23,13 @@ class Pipeline:
             config (str | dict): Path to the configuration file or a dictionary
         """
         config = config if isinstance(config, dict) else read_yaml(config)
-        config.update(kwargs)
+
+        if kwargs:
+            NotImplementedError("Merging config from file and kwargs not implemented yet.")
         #TODO: validate the config
 
         self.predictors_labels = config["ml_setup"]["predictors"]
-        self.target_labels = config["ml_setup"]["target"]
+        self.target_labels = config["ml_setup"]["targets"]
         self.model_names = config["ml_setup"]["model_names"]
         self.metric_names = config["ml_setup"]["metric_names"]
         self.train_test_split_kwargs = config["ml_setup"]["train_test_split_kwargs"]

@@ -43,17 +43,30 @@ def create_dummy_mat_file(file_name):
 
 
 def creat_dummy_config(config_file, mat_file):
+    model_names = {
+        "LeastAngleRegression": {},
+        "LinearRegression": {},
+    }
+    train_test_split_kwargs = {"train_size": 0.75, "shuffle": True, "random_state": 42}
+
     config = f"""
     data:
         exp1:
             mat_file: {mat_file}
     ml_setup:
-        target: ["acc_tb_meas3[0]"]
+        targets: ["acc_tb_meas3[0]"]
         predictors: ["acc_tb_meas3[1]", "acc_tb_meas3[2]"]
-        models: ["en", "lr"]
+        model_names: {model_names}
         n_jobs: 1
         use_gpu: False
         system_log: False
+        save_grid_scores: True
+        save_best_model: True
+        log_experiment: True
+        train_test_split_kwargs: {train_test_split_kwargs}
+        metric_names: ["r2", "model_fit_time"]
+    session_setup:
+        work_dir: "."
     """
     with open(config_file, "w") as f:
         f.write(config)

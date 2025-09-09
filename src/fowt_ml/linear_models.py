@@ -49,18 +49,22 @@ class LinearModels:
     ) -> float:
         """Calculate the score for the model using test data.
 
-        First it fits the model with the training data, then predicts the test
-        data
+        In multi-output regression, by default, 'uniform_average' is used,
+        which specifies a uniformly weighted mean over outputs. see
+        https://scikit-learn.org/stable/modules/model_evaluation.html#regression-metrics
+
+        For scoring paramers overview:
+        https://scikit-learn.org/stable/modules/model_evaluation.html#string-name-scorers
 
         Args:
             x_train (ArrayLike): training data for features
             x_test (ArrayLike): test data for features
             y_train (ArrayLike): training data for targets
             y_test (ArrayLike): test data for targets
-            scoring (Union[str, scoring]): the scoring to calculate
+            scoring (str | Iterable, optional): scoring method(s) to use.
 
         Returns:
-            float: the scoring value
+            float | dict[str, float]: the calculated score(s)
         """
         model_fit_start = time.time()
         self.estimator.fit(x_train, y_train)
@@ -68,15 +72,20 @@ class LinearModels:
         model_fit_time = np.round(model_fit_end - model_fit_start, 2)
 
         # if "model_fit_time" in scoring, remove it
-        if "model_fit_time" in scoring:
-            if isinstance(scoring, str):
-                scoring = [scoring]
-            _scoring = [s for s in scoring if s != "model_fit_time"]
+        scoring_list = None
+        include_fit_time = False
+        if scoring is not None:
+            scoring_list = [scoring] if isinstance(scoring, str) else list(scoring)
 
-        scorer = sm.check_scoring(self.estimator, scoring=_scoring)
-        scorer_dict = scorer(self.estimator, x_test, y_test)
+            include_fit_time = "model_fit_time" in scoring_list
+            if include_fit_time:
+                scoring_list = [s for s in scoring_list if s != "model_fit_time"]
+
+        scorer = sm.check_scoring(self.estimator, scoring=scoring_list)
+        scores = scorer(self.estimator, x_test, y_test)
 
         # if "model_fit_time" in original scoring, add it back
-        if "model_fit_time" in scoring:
-            scorer_dict["model_fit_time"] = model_fit_time
-        return scorer_dict
+        if include_fit_time:
+            scores["model_fit_time"] = model_fit_time
+
+        return scores
