@@ -2,8 +2,10 @@
 
 from collections.abc import Iterable
 from logging import Logger
+import time
 from typing import Any
 import gpytorch
+import numpy as np
 import pandas as pd
 import torch
 from numpy.typing import ArrayLike
@@ -167,11 +169,11 @@ class SklearnGPRegressor(RegressorMixin, BaseEstimator):
                 loss = -mll(output, y_batch)
                 loss.backward()
                 optimizer.step()
-                total_loss += loss.item()
+                total_loss += loss
 
             # normalize the loss per data point and output dimension because it
             # gives a better idea of the loss in log
-            ave_loss = total_loss / (x_train.size(0) * y_train.size(1))
+            ave_loss = total_loss.item() / (x_train.size(0) * y_train.size(1))
             logger.info(f"Epoch {epoch + 1}/{self.num_epochs} - Loss: {ave_loss:.3f}")
 
         self.is_fitted_ = True
@@ -251,9 +253,24 @@ class SparseGaussianModel:
         For scoring paramers overview:
         https://scikit-learn.org/stable/modules/model_evaluation.html#string-name-scorers
         """  # noqa: E501
+        model_fit_start = time.time()
         self.estimator.fit(x_train, y_train)
-        scorer = check_scoring(self.estimator, scoring=scoring)
-        return scorer(self.estimator, x_test, y_test)
+        model_fit_end = time.time()
+        model_fit_time = np.round(model_fit_end - model_fit_start, 2)
+
+        # if "model_fit_time" in scoring, remove it
+        if "model_fit_time" in scoring:
+            if isinstance(scoring, str):
+                scoring = [scoring]
+            _scoring = [s for s in scoring if s != "model_fit_time"]
+
+        scorer = check_scoring(self.estimator, scoring=_scoring)
+        scorer_dict = scorer(self.estimator, x_test, y_test)
+
+        # if "model_fit_time" in original scoring, add it back
+        if "model_fit_time" in scoring:
+            scorer_dict["model_fit_time"] = model_fit_time
+        return scorer_dict
 
 
 def _to_tensor(array: ArrayLike | pd.DataFrame) -> torch.Tensor:
