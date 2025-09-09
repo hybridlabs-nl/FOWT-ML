@@ -27,7 +27,7 @@ classifiers = [
 dependencies = [
     "gpytorch", # for Sparse Gaussian processes
     "h5py",  # for HDF5 (matlab) file handling
-    "mlflow",  # for model tracking and model registry
+    "mlflow",  # for model tracking and model registry, it has pydantic as dependency
     "numpy",
     "pandas",
     "pyyaml",  # for configuration files
@@ -95,8 +95,6 @@ select = [
   "PLE",  # Pylint error https://github.com/charliermarsh/ruff#error-ple
 ]
 ignore = [
-    "ANN101", # Missing type annotation for `self` in method
-    "ANN102", # Missing type annotation for `cls` in classmethod
     "ANN204", # Missing return type annotation for special (dunder) method
     "FBT",    # Using boolean function arguments
     "TD",     # TODOs
