@@ -64,7 +64,9 @@ class TestLinearModel:
         results = model.calculate_score(
             x_train, x_test, y_train, y_test, "neg_mean_squared_log_error"
         )
-        np.testing.assert_almost_equal(results["neg_mean_squared_log_error"], 0.0, decimal=3)
+        np.testing.assert_almost_equal(
+            results["neg_mean_squared_log_error"], 0.0, decimal=3
+        )
 
     def test_calculate_score_more(self, simple_dataset):
         x_train, x_test, y_train, y_test = simple_dataset

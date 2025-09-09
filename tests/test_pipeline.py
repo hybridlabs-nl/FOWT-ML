@@ -1,11 +1,10 @@
 from pathlib import Path
 import pandas as pd
-import pytest
+from sklearn.utils.validation import check_is_fitted
+from fowt_ml.config import read_yaml
 from fowt_ml.pipeline import Pipeline
 from . import creat_dummy_config
 from . import create_dummy_mat_file
-from fowt_ml.config import read_yaml
-from sklearn.utils.validation import check_is_fitted
 
 
 class TestPipelineInit:
@@ -34,6 +33,7 @@ class TestPipelineInit:
         assert hasattr(my_pipeline, "target_labels")
         assert "LinearRegression" in my_pipeline.model_names
 
+
 class TestPipelineGetData:
     def test_get_data(self, tmp_path):
         # create dummy files
@@ -46,6 +46,7 @@ class TestPipelineGetData:
         my_pipeline = Pipeline(config_file)
         df = my_pipeline.get_data("exp1")
         assert df.shape == (50, 4)
+
 
 class TestPipelineSplit:
     def test_train_test_split_default(self, tmp_path):
@@ -63,9 +64,15 @@ class TestPipelineSplit:
         my_pipeline.Y_data = df[my_pipeline.target_labels]
         results = my_pipeline.train_test_split()
         assert len(results) == 4
-        assert results[0].shape[0] == results[2].shape[0] # X_train and Y_train have same number of samples
-        assert results[1].shape[0] == results[3].shape[0] # X_test and Y_test have same number of samples
-        assert results[0].shape[1] == results[1].shape[1] # X_train and X_test have same number of features
+
+        # X_train and Y_train have same number of samples
+        assert results[0].shape[0] == results[2].shape[0]
+
+        # X_test and Y_test have same number of samples
+        assert results[1].shape[0] == results[3].shape[0]
+
+        # X_train and X_test have same number of features
+        assert results[0].shape[1] == results[1].shape[1]
 
     def test_train_test_split_kwargs(self, tmp_path):
         # create dummy files
@@ -82,8 +89,13 @@ class TestPipelineSplit:
         my_pipeline.Y_data = df[my_pipeline.target_labels]
         results = my_pipeline.train_test_split(**{"train_size": 0.2})
         assert len(results) == 4
-        assert results[0].shape[0] == 0.2 * my_pipeline.X_data.shape[0]  # train size is 0.2
-        assert results[1].shape[0] == 0.8 * my_pipeline.X_data.shape[0]  # test size is 0.8
+
+        # train size is 0.2
+        assert results[0].shape[0] == 0.2 * my_pipeline.X_data.shape[0]
+
+        # test size is 0.8
+        assert results[1].shape[0] == 0.8 * my_pipeline.X_data.shape[0]
+
 
 class TestPipelineGetModels:
     def test_get_models(self, tmp_path):
@@ -99,6 +111,7 @@ class TestPipelineGetModels:
         assert "LeastAngleRegression" in models
         assert "LinearRegression" in models
         assert len(models) == 2
+
 
 class TestPipelineSetup:
     def test_setup_str(self, tmp_path):
@@ -138,6 +151,7 @@ class TestPipelineSetup:
         assert hasattr(my_pipeline, "Y_test")
         assert hasattr(my_pipeline, "model_instances")
 
+
 class TestPipelineCompare:
     def test_compare_models_default(self, tmp_path):
         # create dummy files
@@ -156,10 +170,12 @@ class TestPipelineCompare:
         assert isinstance(models, dict)
         assert "LeastAngleRegression" in models
         assert "LinearRegression" in models
-        assert check_is_fitted(models["LinearRegression"]) is None # check model is fitted
+        # check model is fitted
+        assert check_is_fitted(models["LinearRegression"]) is None
         assert Path("grid_scores.csv").exists()
         assert Path("best_model.onnx").exists()
-        assert scores["r2"].iloc[0] > scores["r2"].iloc[1] # check sorting of scores
+        # check sorting of scores
+        assert scores["r2"].iloc[0] > scores["r2"].iloc[1]
 
     def test_compare_models_sort(self, tmp_path):
         # create dummy files
@@ -172,4 +188,5 @@ class TestPipelineCompare:
         my_pipeline = Pipeline(config_file)
         my_pipeline.setup(data="exp1")
         _, scores = my_pipeline.compare_models(sort="model_fit_time")
-        assert scores["model_fit_time"].iloc[0] <= scores["model_fit_time"].iloc[1] # check sorting of scores
+        # check sorting of scores
+        assert scores["model_fit_time"].iloc[0] <= scores["model_fit_time"].iloc[1]

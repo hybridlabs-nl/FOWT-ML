@@ -1,7 +1,7 @@
 """Module to handle linear models."""
 
-from collections.abc import Iterable
 import time
+from collections.abc import Iterable
 from typing import Any
 import numpy as np
 import sklearn.linear_model as lm

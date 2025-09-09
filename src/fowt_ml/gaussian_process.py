@@ -1,8 +1,8 @@
 """Module for sparse Gaussian process for multi-output regeression problem."""
 
+import time
 from collections.abc import Iterable
 from logging import Logger
-import time
 from typing import Any
 import gpytorch
 import numpy as np

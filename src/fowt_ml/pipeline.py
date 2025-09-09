@@ -3,14 +3,14 @@ from pathlib import Path
 from typing import Any
 import mlflow
 import pandas as pd
+from skl2onnx import convert_sklearn
+from skl2onnx.common.data_types import FloatTensorType
 from sklearn.model_selection import train_test_split
 from fowt_ml.config import read_yaml
 from fowt_ml.datasets import get_data
-from fowt_ml.linear_models import LinearModels
 from fowt_ml.ensemble import EnsembleModel
 from fowt_ml.gaussian_process import SparseGaussianModel
-from skl2onnx import convert_sklearn
-from skl2onnx.common.data_types import FloatTensorType
+from fowt_ml.linear_models import LinearModels
 
 logger = logging.getLogger(__name__)
 
@@ -20,13 +20,19 @@ class Pipeline:
         """Initializes the machine learning pipeline.
 
         Args:
-            config (str | dict): Path to the configuration file or a dictionary
+            config (str | dict): Path to the configuration file or a dictionary.
+            kwargs: Additional keyword arguments to override the configuration file.
+
+        Returns:
+            None
         """
         config = config if isinstance(config, dict) else read_yaml(config)
 
         if kwargs:
-            NotImplementedError("Merging config from file and kwargs not implemented yet.")
-        #TODO: validate the config
+            NotImplementedError(
+                "Merging config from file and kwargs not implemented yet."
+            )
+        # TODO: validate the config
 
         self.predictors_labels = config["ml_setup"]["predictors"]
         self.target_labels = config["ml_setup"]["targets"]
@@ -69,8 +75,9 @@ class Pipeline:
 
     def train_test_split(self, **kwargs):
         """Splits the data into training and testing sets.
+
         The data should be set in self.data before calling this method.
-        kwargs are passed to sklearn.model_selection.train_test_split
+        kwargs are passed to sklearn.model_selection.train_test_split.
         """
         if not hasattr(self, "X_data") or not hasattr(self, "Y_data"):
             raise ValueError("Data not found. Run setup before splitting.")
@@ -83,7 +90,6 @@ class Pipeline:
         Returns:
             dict: Dictionary of models.
         """
-
         models = {}
         for model_name, kwrags in self.model_names.items():
             if model_name in LinearModels.ESTIMATOR_NAMES:
@@ -129,7 +135,9 @@ class Pipeline:
 
         """
         model = self.model_instances[model_name]
-        scores = model.calculate_score(self.X_train, self.X_test, self.Y_train, self.Y_test, self.metric_names)
+        scores = model.calculate_score(
+            self.X_train, self.X_test, self.Y_train, self.Y_test, self.metric_names
+        )
         return model.estimator, scores
 
     def _log_model(self):
@@ -141,7 +149,9 @@ class Pipeline:
                     mlflow.log_metrics(self.scores[model_name])
                     input_example = self.X_train[:1]  # small slice of training data
                     model = self.fitted_models[model_name]
-                    signature = mlflow.models.infer_signature(input_example, model.predict(input_example))
+                    signature = mlflow.models.infer_signature(
+                        input_example, model.predict(input_example)
+                    )
                     mlflow.sklearn.log_model(
                         model,
                         model_name,
@@ -161,14 +171,16 @@ class Pipeline:
             best_model = self.fitted_models[best_model_name]
             file_name = self.work_dir / "best_model.onnx"
 
-            initial_type = [("input", FloatTensorType([None, len(self.predictors_labels)]))]
+            initial_type = [
+                ("input", FloatTensorType([None, len(self.predictors_labels)]))
+            ]
             onnx_model = convert_sklearn(best_model, initial_types=initial_type)
 
             logger.info("Saving best model to ONNX format in {file_name}")
             with open(file_name, "wb") as f:
                 f.write(onnx_model.SerializeToString())
 
-    def compare_models(self, sort:str="r2") -> Any:
+    def compare_models(self, sort: str = "r2") -> Any:
         """Compares the models and returns the best model.
 
         Returns:
@@ -181,15 +193,15 @@ class Pipeline:
         for model_name in self.model_names:
             fitted_model, scores = self._run_model(model_name)
             self.fitted_models[model_name] = fitted_model
-            self.scores[model_name]= scores
+            self.scores[model_name] = scores
 
         grid_scores = pd.DataFrame(self.scores).T
 
         if sort not in grid_scores.columns:
             raise ValueError(
-                f"Default sort {sort} not in the metrics {grid_scores.columns.tolist()} provided."
-                " Choose one of the metrics to sort the models."
-                )
+                f"Default sort {sort} not in metrics {grid_scores.columns.tolist()}"
+                " provided. Choose one of the metrics to sort the models."
+            )
 
         ascending = sort == "model_fit_time"
         self.grid_scores_sorted = grid_scores.sort_values(by=sort, ascending=ascending)
