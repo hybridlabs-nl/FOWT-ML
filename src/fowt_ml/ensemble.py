@@ -1,7 +1,9 @@
 # ruff: noqa: N803
+import time
 import warnings
 from collections.abc import Iterable
 from typing import Any
+import numpy as np
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator
 from sklearn.ensemble import ExtraTreesRegressor
@@ -51,9 +53,9 @@ class EnsembleModel:
 
     def calculate_score(
         self,
-        X_train: ArrayLike,
+        x_train: ArrayLike,
+        x_test: ArrayLike,
         y_train: ArrayLike,
-        X_test: ArrayLike,
         y_test: ArrayLike,
         scoring: str | Iterable | None = None,
     ) -> float | ArrayLike:
@@ -61,6 +63,21 @@ class EnsembleModel:
 
         Scoring paramers overview: https://scikit-learn.org/stable/modules/model_evaluation.html#string-name-scorers
         """  # noqa: E501
-        self.estimator.fit(X_train, y_train)
-        scorer = check_scoring(self.estimator, scoring=scoring)
-        return scorer(self.estimator, X_test, y_test)
+        model_fit_start = time.time()
+        self.estimator.fit(x_train, y_train)
+        model_fit_end = time.time()
+        model_fit_time = np.round(model_fit_end - model_fit_start, 2)
+
+        # if "model_fit_time" in scoring, remove it
+        if "model_fit_time" in scoring:
+            if isinstance(scoring, str):
+                scoring = [scoring]
+            _scoring = [s for s in scoring if s != "model_fit_time"]
+
+        scorer = check_scoring(self.estimator, scoring=_scoring)
+        scorer_dict = scorer(self.estimator, x_test, y_test)
+
+        # if "model_fit_time" in original scoring, add it back
+        if "model_fit_time" in scoring:
+            scorer_dict["model_fit_time"] = model_fit_time
+        return scorer_dict
