@@ -176,7 +176,7 @@ class TestPipelineCompare:
         assert Path("grid_scores.csv").exists()
         assert Path("best_model.onnx").exists()
         # check sorting of scores
-        assert scores["r2"].iloc[0] > scores["r2"].iloc[1]
+        assert scores["r2"].iloc[0] >= scores["r2"].iloc[1]
 
     def test_compare_models_sort(self, tmp_path):
         # create dummy files
@@ -209,6 +209,7 @@ class TestPipelineCompare:
 
         # read the onnx model
         import onnxruntime as rt
+
         sess = rt.InferenceSession("best_model.onnx")
         input_name = sess.get_inputs()[0].name
         output_name = sess.get_outputs()[0].name

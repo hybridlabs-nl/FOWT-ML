@@ -29,7 +29,7 @@ class Pipeline:
         config = config if isinstance(config, dict) else read_yaml(config)
 
         if kwargs:
-            NotImplementedError(
+            raise NotImplementedError(
                 "Merging config from file and kwargs not implemented yet."
             )
         # TODO: validate the config
