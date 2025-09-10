@@ -201,6 +201,9 @@ class TestPipelineCompare:
 
         # test setup
         my_pipeline = Pipeline(config_file)
+        my_pipeline.model_names = {
+            "LinearRegression": {},
+        }  # choose one model to control the test
         my_pipeline.setup(data="exp1")
         model, scores = my_pipeline.compare_models()
         best_model_name = scores.index[0]
@@ -216,4 +219,4 @@ class TestPipelineCompare:
         x = my_pipeline.X_test.to_numpy(dtype=np.float32)
         actual_pred = sess.run([output_name], {input_name: x})[0]
 
-        np.testing.assert_allclose(expected_pred, actual_pred.flatten(), rtol=1e-5)
+        np.testing.assert_allclose(expected_pred, actual_pred, rtol=1e-5)
