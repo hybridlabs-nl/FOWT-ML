@@ -1,23 +1,22 @@
 """Module for sparse Gaussian process for multi-output regeression problem."""
 
-import time
 from collections.abc import Iterable
 from logging import Logger
 from typing import Any
 import gpytorch
-import numpy as np
 import pandas as pd
 import torch
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator
 from sklearn.base import RegressorMixin
-from sklearn.metrics import check_scoring
 from sklearn.metrics import r2_score
 from sklearn.utils.validation import check_array
 from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.validation import check_X_y
 from torch.utils.data import DataLoader
 from torch.utils.data import TensorDataset
+
+from fowt_ml.base import BaseModel
 
 logger = Logger(__name__)
 
@@ -219,7 +218,7 @@ class SklearnGPRegressor(RegressorMixin, BaseEstimator):
         return r2_score(y, y_pred)
 
 
-class SparseGaussianModel:
+class SparseGaussianModel(BaseModel):
     """Class to handle sparse Gaussian process regression."""
 
     ESTIMATOR_NAMES = {
@@ -235,57 +234,6 @@ class SparseGaussianModel:
             self.estimator = self.ESTIMATOR_NAMES[estimator](**kwargs)
         else:
             self.estimator = estimator.set_params(**kwargs)
-
-    def calculate_score(
-        self,
-        x_train: ArrayLike,
-        x_test: ArrayLike,
-        y_train: ArrayLike,
-        y_test: ArrayLike,
-        scoring: str | Iterable | None = None,
-    ) -> float | ArrayLike:
-        """Calculate the score for the model using test data.
-
-        In multi-output regression, by default, 'uniform_average' is used,
-        which specifies a uniformly weighted mean over outputs. see
-        https://scikit-learn.org/stable/modules/model_evaluation.html#regression-metrics
-
-        For scoring paramers overview:
-        https://scikit-learn.org/stable/modules/model_evaluation.html#string-name-scorers
-
-        Args:
-            x_train (ArrayLike): training data for features
-            x_test (ArrayLike): test data for features
-            y_train (ArrayLike): training data for targets
-            y_test (ArrayLike): test data for targets
-            scoring (str | Iterable, optional): scoring method(s) to use.
-
-        Returns:
-            float | dict[str, float]: the calculated score(s)
-        """  # noqa: E501
-        model_fit_start = time.time()
-        self.estimator.fit(x_train, y_train)
-        model_fit_end = time.time()
-        model_fit_time = np.round(model_fit_end - model_fit_start, 2)
-
-        # if "model_fit_time" in scoring, remove it
-        scoring_list = None
-        include_fit_time = False
-        if scoring is not None:
-            scoring_list = [scoring] if isinstance(scoring, str) else list(scoring)
-
-            include_fit_time = "model_fit_time" in scoring_list
-            if include_fit_time:
-                scoring_list = [s for s in scoring_list if s != "model_fit_time"]
-
-        scorer = check_scoring(self.estimator, scoring=scoring_list)
-        scores = scorer(self.estimator, x_test, y_test)
-
-        # if "model_fit_time" in original scoring, add it back
-        if include_fit_time:
-            scores["model_fit_time"] = model_fit_time
-
-        return scores
 
 
 def _to_tensor(array: ArrayLike | pd.DataFrame) -> torch.Tensor:
