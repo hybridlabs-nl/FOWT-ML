@@ -15,7 +15,7 @@ from sklearn.metrics import get_scorer
 class EnsembleModel:
     """Class to handle random forest models and metrics for comparison."""
 
-    ENSEMBLE_REGRESSORS = {
+    ESTIMATOR_NAMES = {
         "ExtraTrees": ExtraTreesRegressor,
         "RandomForest": RandomForestRegressor,
     }
@@ -24,11 +24,11 @@ class EnsembleModel:
         self, estimator: str | BaseEstimator, **kwargs: dict[str, Any]
     ) -> None:
         if isinstance(estimator, str):
-            if estimator not in self.ENSEMBLE_REGRESSORS:
+            if estimator not in self.ESTIMATOR_NAMES:
                 raise ValueError(
-                    f"Available estimators: {self.ENSEMBLE_REGRESSORS.keys()}"
+                    f"Available estimators: {self.ESTIMATOR_NAMES.keys()}"
                 )
-            self.estimator = self.ENSEMBLE_REGRESSORS[estimator](**kwargs)
+            self.estimator = self.ESTIMATOR_NAMES[estimator](**kwargs)
         else:
             self.estimator = estimator.set_params(**kwargs)
 
