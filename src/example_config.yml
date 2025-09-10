@@ -3,13 +3,7 @@ data:
     mat_file: ./exp699.mat
     wind_speed: 4.0
 ml_setup:
-  target: [
-      'acc_tb_meas3[0]',
-      'acc_tb_meas3[1]',
-      'acc_tb_meas3[2]',
-      'acc_tt_meas3[0]',
-      'acc_tt_meas3[1]',
-      'acc_tt_meas3[2]',
+  targets: [
       'force_aero_est6[0]',
       'force_aero_est6[1]',
       'force_aero_est6[2]',
@@ -24,6 +18,12 @@ ml_setup:
       'force_tt_meas6[5]',
               ]
   predictors: [
+      'acc_tb_meas3[0]',
+      'acc_tb_meas3[1]',
+      'acc_tb_meas3[2]',
+      'acc_tt_meas3[0]',
+      'acc_tt_meas3[1]',
+      'acc_tt_meas3[2]',
       'pos_act6[0]',
       'pos_act6[1]',
       'pos_act6[2]',
@@ -33,9 +33,9 @@ ml_setup:
       'spd_rot_act',
       'wind_speed',
       ]
-  save_grid_scores: False
-  save_best_model: False
-  log_experiment: False
+  save_grid_scores: True
+  save_best_model: True
+  log_experiment: True
   n_jobs: 2
   use_gpu: False
   train_test_split_kwargs: {"train_size": 0.75, "shuffle": True, "random_state": 42}
@@ -44,8 +44,9 @@ ml_setup:
       "LeastAngleRegression": {}, # Least Angle Regression
       "LassoRegression": {}, # Lasso Regression
       "LinearRegression": {}, # Linear Regression
+      "SklearnGPRegressor": {"num_inducing": 100, "num_latents": 3, "num_epochs": 1}, # Gaussian Process Regression
+      "RandomForest": {"n_estimators": 50, "max_depth": 9, "bootstrap": True, "max_samples": 10_000}, # Random Forest
   }
-  metric_names : ["neg_mean_squared_error", "neg_root_mean_squared_error", "r2"]  # or TT for time in seconds,
-  system_log: "./logs.log"  # pytorch!
+  metric_names : ["neg_mean_squared_error", "neg_root_mean_squared_error", "r2", "model_fit_time"]
 session_setup:
   work_dir: "."
