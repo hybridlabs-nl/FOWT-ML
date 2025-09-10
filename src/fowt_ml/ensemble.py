@@ -2,13 +2,11 @@
 
 import warnings
 from typing import Any
-import numpy as np
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator
 from sklearn.ensemble import ExtraTreesRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import get_scorer
-
 from fowt_ml.base import BaseModel
 
 
@@ -31,7 +29,7 @@ class EnsembleModel(BaseModel):
             self.estimator = estimator.set_params(**kwargs)
 
     def oob_score(
-        self, X: ArrayLike, y: ArrayLike, scoring: str | None = None
+        self, x: ArrayLike, y: ArrayLike, scoring: str | None = None
     ) -> float:
         """Fit and estimate generalization score from out-of-bag samples."""
         if scoring is None:
@@ -46,5 +44,5 @@ class EnsembleModel(BaseModel):
         if not (self.estimator.bootstrap and self.estimator.oob_score):
             warnings.warn(f"Setting `bootstrap=True` and `oob_score={oob_score}`")
             self.estimator.set_params(bootstrap=True, oob_score=oob_score)
-        self.estimator.fit(X, y)
+        self.estimator.fit(x, y)
         return self.estimator.oob_score_

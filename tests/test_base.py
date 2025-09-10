@@ -1,9 +1,9 @@
 import time
 import numpy as np
-import pytest
-from fowt_ml.base import BaseModel
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import check_scoring
+from fowt_ml.base import BaseModel
+
 
 class TestCalculateScore:
     def test_calculate_score_default(self):

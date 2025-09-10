@@ -1,10 +1,8 @@
 """Module to handle linear models."""
 
 from typing import Any
-import numpy as np
 import sklearn.linear_model as lm
 from sklearn.base import BaseEstimator
-
 from fowt_ml.base import BaseModel
 
 

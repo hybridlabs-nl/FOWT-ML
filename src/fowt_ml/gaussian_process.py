@@ -15,7 +15,6 @@ from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.validation import check_X_y
 from torch.utils.data import DataLoader
 from torch.utils.data import TensorDataset
-
 from fowt_ml.base import BaseModel
 
 logger = Logger(__name__)

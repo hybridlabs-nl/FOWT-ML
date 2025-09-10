@@ -1,21 +1,23 @@
 """This is the base class for all models in the fowt_ml package."""
 
-from numpy.typing import ArrayLike
-import numpy as np
 import time
 from collections.abc import Iterable
+import numpy as np
+from numpy.typing import ArrayLike
 from sklearn.metrics import check_scoring
+
 
 class BaseModel:
     """Base class for all models."""
+
     def calculate_score(
-            self,
-            x_train: ArrayLike,
-            x_test: ArrayLike,
-            y_train: ArrayLike,
-            y_test: ArrayLike,
-            scoring: str | Iterable | None = None,
-        ) -> float | dict[str, float]:
+        self,
+        x_train: ArrayLike,
+        x_test: ArrayLike,
+        y_train: ArrayLike,
+        y_test: ArrayLike,
+        scoring: str | Iterable | None = None,
+    ) -> float | dict[str, float]:
         """Calculate the score for the model using test data.
 
         In multi-output regression, by default, 'uniform_average' is used,
