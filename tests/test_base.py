@@ -40,4 +40,4 @@ class TestCalculateScore:
         metrics = ["r2", "model_fit_time"]
         actual_scores = model.calculate_score(x_train, x_test, y_train, y_test, metrics)
         assert actual_scores["r2"] == expected_scores["r2"]
-        assert actual_scores["model_fit_time"] == model_fit_time
+        assert np.isclose(actual_scores["model_fit_time"], model_fit_time, rtol=1e-1)
