@@ -46,6 +46,7 @@ ml_setup:
       "LinearRegression": {}, # Linear Regression
       "SklearnGPRegressor": {"num_inducing": 100, "num_latents": 3, "num_epochs": 1}, # Gaussian Process Regression
       "RandomForest": {"n_estimators": 50, "max_depth": 9, "bootstrap": True, "max_samples": 10_000}, # Random Forest
+      "MultilayerPerceptron": {"hidden_layer_sizes": 10, "max_iter": 10}
   }
   metric_names : ["neg_mean_squared_error", "neg_root_mean_squared_error", "r2", "model_fit_time"]
 session_setup:
