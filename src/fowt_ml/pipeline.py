@@ -11,6 +11,7 @@ from fowt_ml.datasets import get_data
 from fowt_ml.ensemble import EnsembleModel
 from fowt_ml.gaussian_process import SparseGaussianModel
 from fowt_ml.linear_models import LinearModels
+from fowt_ml.neural_network import NN
 
 logger = logging.getLogger(__name__)
 
@@ -91,13 +92,12 @@ class Pipeline:
             dict: Dictionary of models.
         """
         models = {}
+        model_classes = [LinearModels, EnsembleModel, SparseGaussianModel, NN]
         for model_name, kwrags in self.model_names.items():
-            if model_name in LinearModels.ESTIMATOR_NAMES:
-                models[model_name] = LinearModels(model_name, **kwrags)
-            elif model_name in EnsembleModel.ENSEMBLE_REGRESSORS:
-                models[model_name] = EnsembleModel(model_name, **kwrags)
-            elif model_name in SparseGaussianModel.ESTIMATOR_NAMES:
-                models[model_name] = SparseGaussianModel(model_name, **kwrags)
+            for model_class in model_classes:
+                if model_name in model_class.ESTIMATOR_NAMES:
+                    models[model_name] = model_class(model_name, **kwrags)
+                    break
             else:
                 raise ValueError(f"Model {model_name} not supported.")
         return models
