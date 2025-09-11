@@ -9,13 +9,13 @@ import torch
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator
 from sklearn.base import RegressorMixin
-from sklearn.metrics import check_scoring
 from sklearn.metrics import r2_score
 from sklearn.utils.validation import check_array
 from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.validation import check_X_y
 from torch.utils.data import DataLoader
 from torch.utils.data import TensorDataset
+from fowt_ml.base import BaseModel
 
 logger = Logger(__name__)
 
@@ -167,11 +167,11 @@ class SklearnGPRegressor(RegressorMixin, BaseEstimator):
                 loss = -mll(output, y_batch)
                 loss.backward()
                 optimizer.step()
-                total_loss += loss.item()
+                total_loss += loss
 
             # normalize the loss per data point and output dimension because it
             # gives a better idea of the loss in log
-            ave_loss = total_loss / (x_train.size(0) * y_train.size(1))
+            ave_loss = total_loss.item() / (x_train.size(0) * y_train.size(1))
             logger.info(f"Epoch {epoch + 1}/{self.num_epochs} - Loss: {ave_loss:.3f}")
 
         self.is_fitted_ = True
@@ -217,7 +217,7 @@ class SklearnGPRegressor(RegressorMixin, BaseEstimator):
         return r2_score(y, y_pred)
 
 
-class SparseGaussianModel:
+class SparseGaussianModel(BaseModel):
     """Class to handle sparse Gaussian process regression."""
 
     ESTIMATOR_NAMES = {
@@ -233,27 +233,6 @@ class SparseGaussianModel:
             self.estimator = self.ESTIMATOR_NAMES[estimator](**kwargs)
         else:
             self.estimator = estimator.set_params(**kwargs)
-
-    def calculate_score(
-        self,
-        x_train: ArrayLike,
-        x_test: ArrayLike,
-        y_train: ArrayLike,
-        y_test: ArrayLike,
-        scoring: str | Iterable | None = None,
-    ) -> float | ArrayLike:
-        """Fit and calculate a score.
-
-        In multi-output regression, by default, 'uniform_average' is used,
-        which specifies a uniformly weighted mean over outputs. see
-        https://scikit-learn.org/stable/modules/model_evaluation.html#regression-metrics
-
-        For scoring paramers overview:
-        https://scikit-learn.org/stable/modules/model_evaluation.html#string-name-scorers
-        """  # noqa: E501
-        self.estimator.fit(x_train, y_train)
-        scorer = check_scoring(self.estimator, scoring=scoring)
-        return scorer(self.estimator, x_test, y_test)
 
 
 def _to_tensor(array: ArrayLike | pd.DataFrame) -> torch.Tensor:

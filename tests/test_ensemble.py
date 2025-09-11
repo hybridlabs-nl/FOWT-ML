@@ -75,7 +75,7 @@ class TestEnsembleModel:
     def test_calculate_score_works_with_default_scoring(self, train_test_data):
         x_train, x_test, y_train, y_test = train_test_data
         model = EnsembleModel(estimator="RandomForest")
-        score = model.calculate_score(x_train, y_train, x_test, y_test)
+        score = model.calculate_score(x_train, x_test, y_train, y_test)
         # default score is r2
         assert score > 0
 
@@ -84,20 +84,20 @@ class TestEnsembleModel:
         model = EnsembleModel(estimator="RandomForest")
         score = model.calculate_score(
             x_train,
-            y_train,
             x_test,
+            y_train,
             y_test,
             scoring="neg_root_mean_squared_error",
         )
         # score is negative to make it such that higher is better
-        assert score < 0
+        assert score["neg_root_mean_squared_error"] < 0.0
 
     def test_calculate_score_works_with_multiple_scorings(self, train_test_data):
         x_train, x_test, y_train, y_test = train_test_data
         model = EnsembleModel(estimator="RandomForest")
         scorings = ["r2", "neg_root_mean_squared_error"]
         scores = model.calculate_score(
-            x_train, y_train, x_test, y_test, scoring=scorings
+            x_train, x_test, y_train, y_test, scoring=scorings
         )
         # a list of scores is returned
         assert len(scores) == len(scorings)
