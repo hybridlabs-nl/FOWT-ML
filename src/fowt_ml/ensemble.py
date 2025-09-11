@@ -1,9 +1,7 @@
 """Class to handle random forest models and metrics for comparison."""
 
 import warnings
-from typing import Any
 from numpy.typing import ArrayLike
-from sklearn.base import BaseEstimator
 from sklearn.ensemble import ExtraTreesRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import get_scorer
@@ -17,16 +15,6 @@ class EnsembleModel(BaseModel):
         "ExtraTrees": ExtraTreesRegressor,
         "RandomForest": RandomForestRegressor,
     }
-
-    def __init__(
-        self, estimator: str | BaseEstimator, **kwargs: dict[str, Any]
-    ) -> None:
-        if isinstance(estimator, str):
-            if estimator not in self.ESTIMATOR_NAMES:
-                raise ValueError(f"Available estimators: {self.ESTIMATOR_NAMES.keys()}")
-            self.estimator = self.ESTIMATOR_NAMES[estimator](**kwargs)
-        else:
-            self.estimator = estimator.set_params(**kwargs)
 
     def oob_score(
         self, x: ArrayLike, y: ArrayLike, scoring: str | None = None

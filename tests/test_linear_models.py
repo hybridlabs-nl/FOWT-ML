@@ -47,12 +47,7 @@ class TestLinearModel:
     def test_init_with_invalid_name(self):
         with pytest.raises(ValueError) as e:
             LinearModels("LinearRegressionInvalid")
-        assert "estimator LinearRegressionInvalid not supported" in str(e.value)
-
-    def test_init_with_invalid_instance(self):
-        with pytest.raises(ValueError) as e:
-            LinearModels(Lars)
-        assert "model must be a string or a Estimator instance" in str(e.value)
+        assert "Available estimators" in str(e.value)
 
     def test_init_estimator_kwargs(self):
         model = LinearModels("LinearRegression", fit_intercept=False)

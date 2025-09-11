@@ -2,13 +2,28 @@
 
 import time
 from collections.abc import Iterable
+from typing import Any
 import numpy as np
 from numpy.typing import ArrayLike
+from sklearn.base import BaseEstimator
 from sklearn.metrics import check_scoring
 
 
 class BaseModel:
     """Base class for all models."""
+
+    ESTIMATOR_NAMES: dict[str, type[BaseEstimator]] = {}
+
+    def __init__(
+        self, estimator: str | BaseEstimator, **kwargs: dict[str, Any]
+    ) -> None:
+        """Initialize the class with the estimator."""
+        if isinstance(estimator, str):
+            if estimator not in self.ESTIMATOR_NAMES:
+                raise ValueError(f"Available estimators: {self.ESTIMATOR_NAMES.keys()}")
+            self.estimator = self.ESTIMATOR_NAMES[estimator](**kwargs)
+        else:
+            self.estimator = estimator.set_params(**kwargs)
 
     def calculate_score(
         self,
