@@ -2,7 +2,6 @@
 
 from collections.abc import Iterable
 from logging import Logger
-from typing import Any
 import gpytorch
 import pandas as pd
 import torch
@@ -223,16 +222,6 @@ class SparseGaussianModel(BaseModel):
     ESTIMATOR_NAMES = {
         "SklearnGPRegressor": SklearnGPRegressor,
     }
-
-    def __init__(
-        self, estimator: str | BaseEstimator, **kwargs: dict[str, Any]
-    ) -> None:
-        if isinstance(estimator, str):
-            if estimator not in self.ESTIMATOR_NAMES:
-                raise ValueError(f"Available estimators: {self.ESTIMATOR_NAMES.keys()}")
-            self.estimator = self.ESTIMATOR_NAMES[estimator](**kwargs)
-        else:
-            self.estimator = estimator.set_params(**kwargs)
 
 
 def _to_tensor(array: ArrayLike | pd.DataFrame) -> torch.Tensor:

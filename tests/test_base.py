@@ -4,10 +4,29 @@ from sklearn.metrics import check_scoring
 from fowt_ml.base import BaseModel
 
 
+class DummyModel(BaseModel):
+    ESTIMATOR_NAMES = {
+        "LinearRegression": LinearRegression,
+    }
+
+class TestInit:
+    def test_init_with_string(self):
+        model = DummyModel("LinearRegression")
+        assert isinstance(model.estimator, LinearRegression)
+
+    def test_init_with_estimator(self):
+        estimator = LinearRegression()
+        model = DummyModel(estimator)
+        assert model.estimator is estimator
+
+    def test_init_with_kwrags(self):
+        model = DummyModel("LinearRegression", fit_intercept=False)
+        assert model.estimator.fit_intercept is False
+
+
 class TestCalculateScore:
     def test_calculate_score_default(self):
-        model = BaseModel()
-        model.estimator = LinearRegression()
+        model = DummyModel("LinearRegression")
         x_train = np.array([[1], [2], [3], [4], [5]])
         y_train = np.array([2, 3, 4, 5, 6])
         x_test = np.array([[6], [7], [8]])
@@ -21,8 +40,7 @@ class TestCalculateScore:
         assert actual_scores == expected_scores
 
     def test_calculate_score_metrics(self):
-        model = BaseModel()
-        model.estimator = LinearRegression()
+        model = DummyModel("LinearRegression")
         x_train = np.array([[1], [2], [3], [4], [5]])
         y_train = np.array([2, 3, 4, 5, 6])
         x_test = np.array([[6], [7], [8]])
