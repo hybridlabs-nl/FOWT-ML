@@ -9,6 +9,7 @@ class DummyModel(BaseModel):
         "LinearRegression": LinearRegression,
     }
 
+
 class TestInit:
     def test_init_with_string(self):
         model = DummyModel("LinearRegression")

@@ -11,6 +11,7 @@ from sklearn.metrics import check_scoring
 
 class BaseModel:
     """Base class for all models."""
+
     ESTIMATOR_NAMES: dict[str, type[BaseEstimator]] = {}
 
     def __init__(
