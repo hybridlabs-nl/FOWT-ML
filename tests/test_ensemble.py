@@ -48,19 +48,12 @@ class TestEnsembleModel:
         model = EnsembleModel(estimator=estimator)
         assert isinstance(model.estimator, RandomForestRegressor)
 
-    def test_oob_score_works_with_default_scoring(self, regression_data):
-        x, y = regression_data
-        # oob_score=True means that r2 scoring is used
-        model = EnsembleModel(estimator="RandomForest", oob_score=True)
-        score = model.oob_score(x, y)
-        assert score > 0
-
     def test_oob_score_automatically_enables_oob_score(self, regression_data):
         x, y = regression_data
         model = EnsembleModel(estimator="RandomForest")
         # model.oob_score sets oob_score to True and raises a warning
         with pytest.warns():
-            score = model.oob_score(x, y)
+            score = model.oob_score(x, y, scoring="r2")
         assert score > 0
 
     def test_oob_score_works_with_custom_scoring(self, regression_data):
@@ -71,13 +64,6 @@ class TestEnsembleModel:
             score = model.oob_score(x, y, scoring="neg_root_mean_squared_error")
         # score is negative to make it such that higher is better
         assert score < 0
-
-    def test_calculate_score_works_with_default_scoring(self, train_test_data):
-        x_train, x_test, y_train, y_test = train_test_data
-        model = EnsembleModel(estimator="RandomForest")
-        score = model.calculate_score(x_train, x_test, y_train, y_test)
-        # default score is r2
-        assert score > 0
 
     def test_calculate_score_works_with_custom_scoring(self, train_test_data):
         x_train, x_test, y_train, y_test = train_test_data

@@ -220,3 +220,27 @@ class TestPipelineCompare:
         actual_pred = sess.run([output_name], {input_name: x})[0]
 
         np.testing.assert_allclose(expected_pred, actual_pred, rtol=1e-5)
+
+    def test_compare_models_cv(self, tmp_path):
+        # create dummy files
+        config_file = tmp_path / "config.yaml"
+        mat_file = tmp_path / "data.mat"
+        creat_dummy_config(config_file, mat_file)
+        create_dummy_mat_file(mat_file)
+
+        # test setup
+        my_pipeline = Pipeline(config_file)
+        my_pipeline.setup(data="exp1")
+        models, scores = my_pipeline.compare_models(cross_validation=True)
+        assert isinstance(scores, pd.DataFrame)
+        assert "r2" in scores
+        assert "model_fit_time" in scores
+        assert isinstance(models, dict)
+        assert "LeastAngleRegression" in models
+        assert "LinearRegression" in models
+        # check model is fitted
+        assert check_is_fitted(models["LinearRegression"]) is None
+        assert Path("grid_scores.csv").exists()
+        assert Path("best_model.onnx").exists()
+        # check sorting of scores
+        assert scores["r2"].iloc[0] >= scores["r2"].iloc[1]

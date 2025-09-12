@@ -7,6 +7,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator
 from sklearn.metrics import check_scoring
+from sklearn.model_selection import cross_validate
 
 
 class BaseModel:
@@ -31,9 +32,13 @@ class BaseModel:
         x_test: ArrayLike,
         y_train: ArrayLike,
         y_test: ArrayLike,
-        scoring: str | Iterable | None = None,
+        scoring: str | Iterable,
     ) -> float | dict[str, float]:
         """Calculate the score for the model using test data.
+
+        First, the model is fitted to the training data, and the time taken to
+        fit the model is recorded. Then, the model is scored using the provided
+        scoring method(s) on the `test` data.
 
         In multi-output regression, by default, 'uniform_average' is used,
         which specifies a uniformly weighted mean over outputs. see
@@ -58,20 +63,70 @@ class BaseModel:
         model_fit_time = np.round(model_fit_end - model_fit_start, 2)
 
         # prepare scoring list and check if "model_fit_time" is included
-        scoring_list = None
         include_fit_time = False
-        if scoring is not None:
-            scoring_list = [scoring] if isinstance(scoring, str) else list(scoring)
-            include_fit_time = "model_fit_time" in scoring_list
+        scoring_list = [scoring] if isinstance(scoring, str) else list(scoring)
+        include_fit_time = "model_fit_time" in scoring_list
 
         if include_fit_time:
             scoring_list = [s for s in scoring_list if s != "model_fit_time"]
 
-        scorer = check_scoring(self.estimator, scoring=scoring_list)
-        scores = scorer(self.estimator, x_test, y_test)
+        if scoring_list:
+            scorer = check_scoring(self.estimator, scoring=scoring_list)
+            scores = scorer(self.estimator, x_test, y_test)
+        else:
+            scores = {}
 
         # if "model_fit_time" in original scoring, add it back
         if include_fit_time:
             scores["model_fit_time"] = model_fit_time
 
         return scores
+
+    def cross_validate(
+        self,
+        x_train: ArrayLike,
+        y_train: ArrayLike,
+        scoring: str | Iterable,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Perform cross-validation on the model.
+
+        Args:
+            x_train (ArrayLike): features data
+            y_train (ArrayLike): target data
+            scoring (str | Iterable, optional): scoring method(s) to use.
+            **kwargs: additional keyword arguments to pass to `cross_validate`
+
+        Returns:
+            dict[str, Any]: dictionary containing cross-validation results
+        """
+        include_fit_time = False
+        scoring_list = [scoring] if isinstance(scoring, str) else list(scoring)
+        include_fit_time = "model_fit_time" in scoring_list
+
+        if include_fit_time:
+            scoring_list = [s for s in scoring_list if s != "model_fit_time"]
+
+        if len(scoring_list) == 0:
+            scoring_list = None  # to get fit_time
+
+        cv_results = cross_validate(
+            self.estimator,
+            x_train,
+            y_train,
+            scoring=scoring_list,  # cannot be empty list
+            **kwargs,
+        )
+
+        # if "model_fit_time" in original scoring, add it back
+        if include_fit_time:
+            cv_results["model_fit_time"] = np.round(cv_results.pop("fit_time"), 2)
+
+        # select only scoring keys related to "test" set in each CV split
+        cv_results = {
+            k.replace("test_", ""): v
+            for k, v in cv_results.items()
+            if k.startswith("test_") or k == "model_fit_time"
+        }
+
+        return cv_results

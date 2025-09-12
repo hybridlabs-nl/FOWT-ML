@@ -39,6 +39,7 @@ ml_setup:
   n_jobs: 2
   use_gpu: False
   train_test_split_kwargs: {"train_size": 0.75, "shuffle": True, "random_state": 42}
+  cross_validation_kwargs: {"cv": 3}
   model_names: {  # models that supports multi-output regression
       "ElasticNetRegression": {}, # Elastic Net
       "LeastAngleRegression": {}, # Least Angle Regression
