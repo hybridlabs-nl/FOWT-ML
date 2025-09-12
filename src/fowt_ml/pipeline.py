@@ -43,6 +43,7 @@ class Pipeline:
         self.model_names = config["ml_setup"]["model_names"]
         self.metric_names = config["ml_setup"]["metric_names"]
         self.train_test_split_kwargs = config["ml_setup"]["train_test_split_kwargs"]
+        self.cross_validation_kwargs = config["ml_setup"]["cross_validation_kwargs"]
 
         self.work_dir = Path(config["session_setup"]["work_dir"])
         self.work_dir.mkdir(parents=True, exist_ok=True)
@@ -144,7 +145,7 @@ class Pipeline:
 
         self.model_instances = self.get_models()
 
-    def _run_model(self, model_name):
+    def _run_model(self, model_name, cross_validation: bool) -> tuple[Any, dict]:
         """Runs the models on the training data.
 
         Returns:
@@ -152,9 +153,21 @@ class Pipeline:
 
         """
         model = self.model_instances[model_name]
-        scores = model.calculate_score(
-            self.X_train, self.X_test, self.Y_train, self.Y_test, self.metric_names
-        )
+
+        if cross_validation:
+            all_scores = model.cross_validate(
+                self.X_train,
+                self.Y_train,
+                scoring=self.metric_names,
+                **self.cross_validation_kwargs,
+            )
+            # calculate mean of the scores
+            scores = {k: v.mean() for k, v in all_scores.items()}
+            model.estimator.fit(self.X_train, self.Y_train)
+        else:
+            scores = model.calculate_score(
+                self.X_train, self.X_test, self.Y_train, self.Y_test, self.metric_names
+            )
         return model.estimator, scores
 
     def _log_model(self):
@@ -197,18 +210,23 @@ class Pipeline:
             with open(file_name, "wb") as f:
                 f.write(onnx_model.SerializeToString())
 
-    def compare_models(self, sort: str = "r2") -> Any:
+    def compare_models(self, sort: str = "r2", cross_validation: bool = False) -> Any:
         """Compares the models and returns the best model.
 
-        Returns:
-            Any: Best model from the experiment according to metrics_sort, set
-            in the configuration file.
+        "model_fit_time" is in seconds.
 
+        Args:
+            sort (str, optional): Metric to sort the models by. Defaults to "r2".
+            cross_validation (bool, optional): Whether to use cross-validation
+            for comparison. Defaults to False.
+
+        Returns:
+            tuple: (dict of fitted models, pd.DataFrame of grid scores sorted by `sort`)
         """
         self.fitted_models = {}
         self.scores = {}
         for model_name in self.model_names:
-            fitted_model, scores = self._run_model(model_name)
+            fitted_model, scores = self._run_model(model_name, cross_validation)
             self.fitted_models[model_name] = fitted_model
             self.scores[model_name] = scores
 

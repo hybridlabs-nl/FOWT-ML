@@ -136,7 +136,7 @@ def test_check_numeric(tmp_path):
 
     df = get_data(data_id, config)
     col_names = ["acc_tb_meas3[0]", "acc_tb_meas3[1]", "acc_tb_meas3[2]"]
-    df.loc[0, "acc_tb_meas3[1]"] = "invalid"
+    df["acc_tb_meas3[1]"] = df["acc_tb_meas3[1]"].astype(object)
     with pytest.raises(ValueError, match="is not numeric"):
         df = check_data(df, col_names)
 
