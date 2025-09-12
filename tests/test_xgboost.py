@@ -1,7 +1,7 @@
 import pytest
-import sklearn.neural_network as nn
+import xgboost as xgb
 from sklearn.base import BaseEstimator
-from fowt_ml.neural_network import NeuralNetwork
+from fowt_ml.xgboost import XGBoost
 
 
 @pytest.fixture
@@ -14,28 +14,28 @@ def simple_dataset():
     return x_train, x_test, y_train, y_test
 
 
-class TestMLP:
+class TestXGBoost:
     def test_init_estimator_lr(self):
-        model = NeuralNetwork("MultilayerPerceptron")
-        assert isinstance(model.estimator, nn.MLPRegressor)
+        model = XGBoost("XGBoostRegression")
+        assert isinstance(model.estimator, xgb.XGBRegressor)
 
     def test_init_with_estimator_instance(self):
-        model = NeuralNetwork(nn.MLPRegressor())
+        model = XGBoost(xgb.XGBRegressor())
         assert isinstance(model.estimator, BaseEstimator)
 
     def test_init_estimator_kwargs(self):
-        model = NeuralNetwork("MultilayerPerceptron", hidden_layer_sizes=10)
-        assert model.estimator.hidden_layer_sizes == 10
+        model = XGBoost("XGBoostRegression", tree_method="hist")
+        assert model.estimator.tree_method == "hist"
 
     def test_calculate_score_rmse(self, simple_dataset):
         x_train, x_test, y_train, y_test = simple_dataset
-        model = NeuralNetwork("MultilayerPerceptron")
+        model = XGBoost("XGBoostRegression")
         results = model.calculate_score(x_train, x_test, y_train, y_test, "r2")
         assert "r2" in results
 
     def test_calculate_score_more(self, simple_dataset):
         x_train, x_test, y_train, y_test = simple_dataset
-        model = NeuralNetwork("MultilayerPerceptron")
+        model = XGBoost("XGBoostRegression")
         results = model.calculate_score(
             x_train,
             x_test,
