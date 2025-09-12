@@ -7,11 +7,14 @@ from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 from sklearn.model_selection import train_test_split
 from fowt_ml.config import read_yaml
+from fowt_ml.datasets import check_data
+from fowt_ml.datasets import fix_column_names
 from fowt_ml.datasets import get_data
 from fowt_ml.ensemble import EnsembleModel
 from fowt_ml.gaussian_process import SparseGaussianModel
 from fowt_ml.linear_models import LinearModels
-from fowt_ml.neural_network import NN
+from fowt_ml.neural_network import NeuralNetwork
+from fowt_ml.xgboost import XGBoost
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +95,13 @@ class Pipeline:
             dict: Dictionary of models.
         """
         models = {}
-        model_classes = [LinearModels, EnsembleModel, SparseGaussianModel, NN]
+        model_classes = [
+            LinearModels,
+            EnsembleModel,
+            SparseGaussianModel,
+            NeuralNetwork,
+            XGBoost,
+        ]
         for model_name, kwrags in self.model_names.items():
             for model_class in model_classes:
                 if model_name in model_class.ESTIMATOR_NAMES:
@@ -119,8 +128,16 @@ class Pipeline:
         if isinstance(data, str):
             data = self.get_data(data)
 
-        self.X_data = data[self.predictors_labels]
-        self.Y_data = data[self.target_labels]
+        # check if the data has the required columns, and valid values
+        data = check_data(data, self.predictors_labels + self.target_labels)
+
+        self.X_data = data.loc[:, self.predictors_labels]
+        self.Y_data = data.loc[:, self.target_labels]
+
+        # fix column names if there are characters not supported
+        self.X_data = fix_column_names(self.X_data)
+        self.Y_data = fix_column_names(self.Y_data)
+
         self.X_train, self.X_test, self.Y_train, self.Y_test = self.train_test_split(
             **self.train_test_split_kwargs
         )

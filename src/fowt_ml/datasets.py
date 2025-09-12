@@ -77,3 +77,47 @@ def get_data(data_id: str, config: dict) -> pd.DataFrame:
         )
         logger.info(msg)
     return df
+
+
+def check_data(df: pd.DataFrame, col_names) -> pd.DataFrame:
+    """Checks if the dataframe has the required columns and their are valid.
+
+    Args:
+        df (pd.DataFrame): DataFrame to check.
+        col_names (list): List of required columns.
+
+    Returns:
+        pd.DataFrame: DataFrame with valid required columns.
+
+    """
+    missing_columns = [col for col in col_names if col not in df.columns]
+    if missing_columns:
+        raise ValueError(f"Missing columns: {missing_columns}")
+
+    # check if the columns have valid values
+    for col in df.columns:
+        if df[col].isnull().any():
+            raise ValueError(f"Column {col} has NaN values.")
+        if not np.issubdtype(df[col].dtype, np.number):
+            raise ValueError(f"Column {col} is not numeric.")
+
+    return df
+
+
+def fix_column_names(df: pd.DataFrame) -> pd.DataFrame:
+    """Fixes the column names to remove special characters.
+
+    Args:
+        df (pd.DataFrame): DataFrame to fix.
+
+    Returns:
+        pd.DataFrame: DataFrame with fixed column names.
+
+    """
+    df.rename(
+        columns=lambda col: (
+            col.replace("[", "_").replace("]", "").replace("<", "_").replace(">", "")
+        ),
+        inplace=True,
+    )
+    return df
