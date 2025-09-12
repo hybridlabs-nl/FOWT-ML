@@ -33,6 +33,7 @@ dependencies = [
     "pyyaml",  # for configuration files
     "scikit-learn>=1.5",
     "skl2onnx",  # for saving sklearn models in ONNX format
+    "xgboost",  # for XGBoost models
 ]
 description = "Machine learning (ML) kit for floating offshore wind turbines (FOWT)"
 keywords = ["wind turbine"," machine learning"," NN"," ML"," FOWT"]
