@@ -48,6 +48,13 @@ class BaseConfig(pydantic.BaseModel):
     def __setitem__(self, key, value):
         return setattr(self, key, value)
 
+    def __contains__(self, item):
+        return item in self.__class__.model_fields
+
+    def as_dict(self, *, by_alias: bool = False) -> dict:
+        """Return the config as a (nested) dict."""
+        return self.model_dump(by_alias=by_alias)
+
 
 class ExperimentConfig(BaseConfig):
     path_file: str
@@ -134,8 +141,8 @@ class MLConfig(BaseConfig):
 class Config(BaseConfig):
     """Base class for configuration files."""
 
-    name: str = "basic_config"
-    description: str = "Basic configuration file"
+    name: str = "default_experiment"
+    description: str = "Experiment description"
     data: dict[str, ExperimentConfig]
     ml_setup: MLConfig
     session_setup: dict = {
@@ -167,10 +174,6 @@ class Config(BaseConfig):
         cfg = _schema(cls)
         with open(config_file, "w") as f:
             yaml.dump(cfg, f, sort_keys=False)
-
-    def as_dict(self, *, by_alias: bool = False) -> dict:
-        """Return the config as a (nested) dict."""
-        return self.model_dump(by_alias=by_alias)
 
 
 def get_config_file():

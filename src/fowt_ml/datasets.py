@@ -69,13 +69,14 @@ def get_data(data_id: str, config: dict) -> pd.DataFrame:
 
     # check if wind speed is present
     if "wind_speed" not in df and "wind_speed" in data_info:
-        df["wind_speed"] = data_info["wind_speed"]
-        msg = (
-            f"Wind speed not found in the data file. "
-            f"But found in config file. "
-            f"Setting it to {data_info['wind_speed']}."
-        )
-        logger.info(msg)
+        if data_info["wind_speed"] is not None:
+            df["wind_speed"] = data_info["wind_speed"]
+            msg = (
+                f"Wind speed not found in the data file. "
+                f"But found in config file. "
+                f"Setting it to {data_info['wind_speed']}."
+            )
+            logger.info(msg)
     return df
 
 

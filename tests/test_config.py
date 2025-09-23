@@ -2,12 +2,32 @@ import pytest
 import yaml
 from pydantic_core import ValidationError
 from fowt_ml.config import Config
+from fowt_ml.config import ExperimentConfig
 from fowt_ml.config import MLConfig
 from fowt_ml.config import get_allowed_kwargs
 from fowt_ml.config import get_config_file
 from fowt_ml.gaussian_process import SparseGaussianModel
 from fowt_ml.xgboost import XGBoost
 from . import creat_dummy_config
+
+
+class TestBaseConfig:
+    def test_getitem_setitem(self):
+        cfg = ExperimentConfig(
+            path_file="test_config",
+            wind_speed=10.0,
+        )
+        assert cfg["path_file"] == "test_config"
+        cfg["wind_speed"] = 4.0
+        assert cfg.wind_speed == 4.0
+
+    def test_contains(self):
+        cfg = ExperimentConfig(
+            path_file="test_config",
+        )
+        assert "wind_speed" in cfg
+        assert cfg["wind_speed"] is None
+        assert "nonexistent_field" not in cfg
 
 
 class TestConfig:
@@ -30,7 +50,7 @@ class TestConfig:
 
         with open(config_file) as file:
             expected_cfg = yaml.safe_load(file)
-        assert expected_cfg["name"] == "basic_config"
+        assert expected_cfg["name"] == "default_experiment"
 
     def test_as_dict(self, tmp_path):
         config_file = tmp_path / "config.yaml"
