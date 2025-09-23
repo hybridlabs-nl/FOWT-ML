@@ -6,7 +6,7 @@ import pandas as pd
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 from sklearn.model_selection import train_test_split
-from fowt_ml.config import read_yaml
+from fowt_ml.config import Config
 from fowt_ml.datasets import check_data
 from fowt_ml.datasets import fix_column_names
 from fowt_ml.datasets import get_data
@@ -20,23 +20,17 @@ logger = logging.getLogger(__name__)
 
 
 class Pipeline:
-    def __init__(self, config: str | dict, **kwargs: dict[str, Any]) -> None:
+    def __init__(self, config: str | Config) -> None:
         """Initializes the machine learning pipeline.
 
         Args:
-            config (str | dict): Path to the configuration file or a dictionary.
+            config (str | Config): Path to the configuration file or a Config object.
             kwargs: Additional keyword arguments to override the configuration file.
 
         Returns:
             None
         """
-        config = config if isinstance(config, dict) else read_yaml(config)
-
-        if kwargs:
-            raise NotImplementedError(
-                "Merging config from file and kwargs not implemented yet."
-            )
-        # TODO: validate the config
+        config = config if isinstance(config, Config) else Config.from_yaml(config)
 
         self.predictors_labels = config["ml_setup"]["predictors"]
         self.target_labels = config["ml_setup"]["targets"]

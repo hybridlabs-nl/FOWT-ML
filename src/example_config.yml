@@ -1,6 +1,6 @@
 data:
   exp699:
-    mat_file: ./exp699.mat
+    path_file: ./exp699.mat
     wind_speed: 4.0
 ml_setup:
   targets: [

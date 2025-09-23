@@ -2,7 +2,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from sklearn.utils.validation import check_is_fitted
-from fowt_ml.config import read_yaml
+from fowt_ml.config import Config
 from fowt_ml.pipeline import Pipeline
 from . import creat_dummy_config
 from . import create_dummy_mat_file
@@ -26,9 +26,9 @@ class TestPipelineInit:
         config_file = tmp_path / "config.yaml"
         mat_file = tmp_path / "data.mat"
         creat_dummy_config(config_file, mat_file)
-        config_dict = read_yaml(config_file)
+        cfg = Config.from_yaml(config_file)
 
-        my_pipeline = Pipeline(config_dict)
+        my_pipeline = Pipeline(cfg)
 
         assert hasattr(my_pipeline, "predictors_labels")
         assert hasattr(my_pipeline, "target_labels")
