@@ -1,6 +1,7 @@
 """Documentation about fowt_ml."""
 
 import logging
+from fowt_ml.config import Config
 from fowt_ml.ensemble import EnsembleModel
 from fowt_ml.gaussian_process import SparseGaussianModel
 from fowt_ml.linear_models import LinearModels
@@ -19,4 +20,5 @@ __all__ = [
     "EnsembleModel",
     "SparseGaussianModel",
     "NeuralNetwork",
+    "Config",
 ]
