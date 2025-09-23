@@ -22,22 +22,16 @@ logger = Logger(__name__)
 def get_allowed_kwargs(func_or_class):
     """Return valid keyword args for a function or class constructor."""
     if inspect.isclass(func_or_class):
+        # Handle sklearn-style estimators (incl. XGBoost)
+        if hasattr(func_or_class, "get_params"):
+            try:
+                return set(func_or_class().get_params().keys())
+            except Exception:
+                pass
         sig = inspect.signature(func_or_class.__init__)
     else:
         sig = inspect.signature(func_or_class)
     return set(sig.parameters.keys()) - {"self"}  # drop 'self' if class
-
-
-ALLOWED_TTS_ARGS = get_allowed_kwargs(train_test_split)
-ALLOWED_CV_ARGS = get_allowed_kwargs(cross_validate)
-
-MODEL_CLASSES = [
-    LinearModels,
-    EnsembleModel,
-    SparseGaussianModel,
-    NeuralNetwork,
-    XGBoost,
-]
 
 
 class BaseConfig(pydantic.BaseModel):
@@ -81,10 +75,12 @@ class MLConfig(BaseConfig):
     @classmethod
     def validate_tts_kwargs(cls, v: dict[str, Any]) -> dict[str, Any]:
         """Validate train_test_split kwargs."""
-        if invalid := set(v.keys()) - ALLOWED_TTS_ARGS:
+        allowed_tts_kwargs = get_allowed_kwargs(train_test_split)
+
+        if invalid := set(v.keys()) - allowed_tts_kwargs:
             raise ValueError(
                 f"Invalid train_test_split kwargs: {invalid}. "
-                f"Allowed: {sorted(ALLOWED_TTS_ARGS)}"
+                f"Allowed: {sorted(allowed_tts_kwargs)}"
             )
         return v
 
@@ -92,10 +88,11 @@ class MLConfig(BaseConfig):
     @classmethod
     def validate_cv_kwargs(cls, v: dict[str, Any]) -> dict[str, Any]:
         """Validate cross_validate kwargs."""
-        if invalid := set(v.keys()) - ALLOWED_CV_ARGS:
+        allowed_cv_kwargs = get_allowed_kwargs(cross_validate)
+        if invalid := set(v.keys()) - allowed_cv_kwargs:
             raise ValueError(
                 f"Invalid cross_validate kwargs: {invalid}. "
-                f"Allowed: {sorted(ALLOWED_CV_ARGS)}"
+                f"Allowed: {sorted(allowed_cv_kwargs)}"
             )
         return v
 
@@ -104,9 +101,15 @@ class MLConfig(BaseConfig):
     def validate_models(cls, v: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
         """Validate model names and their kwargs."""
         estimator_map = {
-            name: model_class
-            for model_class in MODEL_CLASSES
-            for name in model_class.ESTIMATOR_NAMES
+            name: est_cls
+            for model_class in [
+                LinearModels,
+                EnsembleModel,
+                SparseGaussianModel,
+                NeuralNetwork,
+                XGBoost,
+            ]
+            for name, est_cls in model_class.ESTIMATOR_NAMES.items()
         }
 
         for model_name, kwargs in v.items():

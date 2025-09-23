@@ -3,7 +3,10 @@ import yaml
 from pydantic_core import ValidationError
 from fowt_ml.config import Config
 from fowt_ml.config import MLConfig
+from fowt_ml.config import get_allowed_kwargs
 from fowt_ml.config import get_config_file
+from fowt_ml.gaussian_process import SparseGaussianModel
+from fowt_ml.xgboost import XGBoost
 from . import creat_dummy_config
 
 
@@ -61,6 +64,22 @@ class TestConfig:
                 metric_names=["r2"],
             )
 
+    def test_valid_model_gpregressor(self):
+        MLConfig(
+            targets=["target1"],
+            predictors=["pred1"],
+            model_names={"SklearnGPRegressor": {"num_inducing": 123}},
+            metric_names=["r2"],
+        )
+
+    def test_valid_model_xgboost(self):
+        MLConfig(
+            targets=["target1"],
+            predictors=["pred1"],
+            model_names={"XGBoostRegression": {"tree_method": "hist"}},
+            metric_names=["r2"],
+        )
+
     def test_invalid_train_test_split_kwargs(self):
         with pytest.raises(
             ValidationError, match="Invalid train_test_split kwargs: {'invalid_arg'}."
@@ -107,3 +126,21 @@ def test_get_config_file_no_default():
 
     with pytest.raises(FileNotFoundError):
         get_config_file()
+
+
+def test_get_allowed_kwargs_sparsegaussian():
+    model_class = SparseGaussianModel.ESTIMATOR_NAMES["SklearnGPRegressor"]
+    allowed_kwargs = get_allowed_kwargs(model_class)
+    assert "num_inducing" in allowed_kwargs
+    assert "num_epochs" in allowed_kwargs
+    assert "learning_rate" in allowed_kwargs
+    assert "batch_size" in allowed_kwargs
+    assert "num_latents" in allowed_kwargs
+
+
+def test_get_allowed_kwargs_xgboost():
+    model_class = XGBoost.ESTIMATOR_NAMES["XGBoostRegression"]
+    allowed_kwargs = get_allowed_kwargs(model_class)
+    assert "n_estimators" in allowed_kwargs
+    assert "max_depth" in allowed_kwargs
+    assert "tree_method" in allowed_kwargs
