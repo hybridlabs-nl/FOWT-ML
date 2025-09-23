@@ -31,7 +31,7 @@ def test_get_data_with_wind_speed(tmp_path, caplog):
     data_id = "exp1"
     config = {
         data_id: {
-            "mat_file": str(mat_file),
+            "path_file": str(mat_file),
             "wind_speed": 10.0,
             "description": "Test data",
         }
@@ -52,7 +52,7 @@ def test_get_data_without_wind_speed(tmp_path):
     data_id = "exp1"
     config = {
         data_id: {
-            "mat_file": str(mat_file),
+            "path_file": str(mat_file),
             "description": "Test data",
         }
     }
@@ -70,7 +70,7 @@ def test_check_data(tmp_path):
     data_id = "exp1"
     config = {
         data_id: {
-            "mat_file": str(mat_file),
+            "path_file": str(mat_file),
             "description": "Test data",
         }
     }
@@ -92,7 +92,7 @@ def test_check_missing(tmp_path):
     data_id = "exp1"
     config = {
         data_id: {
-            "mat_file": str(mat_file),
+            "path_file": str(mat_file),
             "description": "Test data",
         }
     }
@@ -110,7 +110,7 @@ def test_check_null(tmp_path):
     data_id = "exp1"
     config = {
         data_id: {
-            "mat_file": str(mat_file),
+            "path_file": str(mat_file),
             "description": "Test data",
         }
     }
@@ -129,7 +129,7 @@ def test_check_numeric(tmp_path):
     data_id = "exp1"
     config = {
         data_id: {
-            "mat_file": str(mat_file),
+            "path_file": str(mat_file),
             "description": "Test data",
         }
     }
@@ -148,7 +148,7 @@ def test_fix_column_names(tmp_path):
     data_id = "exp1"
     config = {
         data_id: {
-            "mat_file": str(mat_file),
+            "path_file": str(mat_file),
             "description": "Test data",
         }
     }

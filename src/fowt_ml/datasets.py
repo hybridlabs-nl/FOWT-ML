@@ -58,24 +58,25 @@ def get_data(data_id: str, config: dict) -> pd.DataFrame:
     Args:
         data_id (str): ID of the data in the configuration file.
         config (dict): Configuration dictionary.
-            Example: {"data_id": {"mat_file": "data.mat"}}.
+            Example: {"data_id": {"path_file": "data.mat"}}.
 
     Returns:
         pd.DataFrame: DataFrame for the given data_id.
 
     """
     data_info = config[data_id]
-    df = convert_mat_to_df(data_info["mat_file"], data_id)
+    df = convert_mat_to_df(data_info["path_file"], data_id)
 
     # check if wind speed is present
     if "wind_speed" not in df and "wind_speed" in data_info:
-        df["wind_speed"] = data_info["wind_speed"]
-        msg = (
-            f"Wind speed not found in the data file. "
-            f"But found in config file. "
-            f"Setting it to {data_info['wind_speed']}."
-        )
-        logger.info(msg)
+        if data_info["wind_speed"] is not None:
+            df["wind_speed"] = data_info["wind_speed"]
+            msg = (
+                f"Wind speed not found in the data file. "
+                f"But found in config file. "
+                f"Setting it to {data_info['wind_speed']}."
+            )
+            logger.info(msg)
     return df
 
 
