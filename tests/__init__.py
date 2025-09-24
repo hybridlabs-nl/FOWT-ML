@@ -67,7 +67,7 @@ def creat_dummy_config(config_file, mat_file):
         train_test_split_kwargs: {train_test_split_kwargs}
         cross_validation_kwargs:
             cv: 5
-        metric_names: ["r2", "model_fit_time"]
+        metric_names: ["r2", "model_fit_time", "model_predict_time"]
     session_setup:
         work_dir: "."
     """

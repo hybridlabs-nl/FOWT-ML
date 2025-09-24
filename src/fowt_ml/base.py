@@ -4,6 +4,7 @@ import time
 from collections.abc import Iterable
 from typing import Any
 import numpy as np
+import pandas as pd
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator
 from sklearn.metrics import check_scoring
@@ -57,18 +58,17 @@ class BaseModel:
         Returns:
             float | dict[str, float]: the calculated score(s)
         """  # noqa: E501
-        model_fit_start = time.time()
-        self.estimator.fit(x_train, y_train)
-        model_fit_end = time.time()
-        model_fit_time = np.round(model_fit_end - model_fit_start, 2)
+        model_fit_time = _measure_fit_time(self.estimator, x_train, y_train)
 
         # prepare scoring list and check if "model_fit_time" is included
-        include_fit_time = False
         scoring_list = [scoring] if isinstance(scoring, str) else list(scoring)
         include_fit_time = "model_fit_time" in scoring_list
+        include_predict_time = "model_predict_time" in scoring_list
 
-        if include_fit_time:
-            scoring_list = [s for s in scoring_list if s != "model_fit_time"]
+        # Remove custom timing keys before passing to sklearn scorer
+        scoring_list = [
+            s for s in scoring_list if s not in {"model_fit_time", "model_predict_time"}
+        ]
 
         if scoring_list:
             scorer = check_scoring(self.estimator, scoring=scoring_list)
@@ -76,10 +76,13 @@ class BaseModel:
         else:
             scores = {}
 
-        # if "model_fit_time" in original scoring, add it back
         if include_fit_time:
             scores["model_fit_time"] = model_fit_time
 
+        if include_predict_time:
+            scores["model_predict_time"] = _measure_predict_latency(
+                self.estimator, x_test
+            )
         return scores
 
     def cross_validate(
@@ -100,33 +103,66 @@ class BaseModel:
         Returns:
             dict[str, Any]: dictionary containing cross-validation results
         """
-        include_fit_time = False
         scoring_list = [scoring] if isinstance(scoring, str) else list(scoring)
         include_fit_time = "model_fit_time" in scoring_list
+        include_predict_time = "model_predict_time" in scoring_list
 
-        if include_fit_time:
-            scoring_list = [s for s in scoring_list if s != "model_fit_time"]
+        scoring_list = [
+            s for s in scoring_list if s not in {"model_fit_time", "model_predict_time"}
+        ]
 
-        if len(scoring_list) == 0:
-            scoring_list = None  # to get fit_time
+        scorers = {}
+        if scoring_list:
+            scorers.update({s: s for s in scoring_list})
+        if include_predict_time:
+            scorers["model_predict_time"] = _measure_predict_latency
 
         cv_results = cross_validate(
             self.estimator,
             x_train,
             y_train,
-            scoring=scoring_list,  # cannot be empty list
+            scoring=scorers or None,
+            return_train_score=False,
             **kwargs,
         )
 
-        # if "model_fit_time" in original scoring, add it back
-        if include_fit_time:
-            cv_results["model_fit_time"] = np.round(cv_results.pop("fit_time"), 2)
+        results = {}
+        for k, v in cv_results.items():
+            if k.startswith("test_"):
+                results[k.replace("test_", "")] = v
+            elif include_fit_time and k == "fit_time":
+                results["model_fit_time"] = np.round(v, 3)
 
-        # select only scoring keys related to "test" set in each CV split
-        cv_results = {
-            k.replace("test_", ""): v
-            for k, v in cv_results.items()
-            if k.startswith("test_") or k == "model_fit_time"
-        }
+        return results
 
-        return cv_results
+
+def _measure_fit_time(estimator, x_train, y_train) -> float:
+    """Fit the estimator and return elapsed time in seconds."""
+    start = time.perf_counter()
+    estimator.fit(x_train, y_train)
+    end = time.perf_counter()
+    return np.round(end - start, 3)  # decimal 3 for millisecond
+
+
+def _measure_predict_latency(estimator, x_test, y=None) -> float:
+    """Measure average single-sample prediction latency in seconds."""
+    # It doesn't loop over samples to avoid overhead of the loop itself!
+    # Batch latency
+    start = time.perf_counter()
+    _ = estimator.predict(x_test)
+    end = time.perf_counter()
+    batch_latency_per_sample = (end - start) / len(x_test)
+
+    # Single-sample latency
+    if isinstance(x_test, pd.DataFrame):
+        sample = x_test.iloc[[0]]  # keep as DataFrame
+    elif isinstance(x_test, np.ndarray):
+        sample = x_test[:1]  # keep as 2D array
+    else:
+        raise TypeError("X must be a pandas DataFrame or a NumPy array")
+
+    start = time.perf_counter()
+    _ = estimator.predict(sample)
+    end = time.perf_counter()
+    single_sample_latency = end - start
+    return np.round(np.mean([batch_latency_per_sample, single_sample_latency]), 3)

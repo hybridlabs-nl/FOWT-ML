@@ -188,9 +188,37 @@ class TestPipelineCompare:
         # test setup
         my_pipeline = Pipeline(config_file)
         my_pipeline.setup(data="exp1")
+
         _, scores = my_pipeline.compare_models(sort="model_fit_time")
-        # check sorting of scores
         assert scores["model_fit_time"].iloc[0] <= scores["model_fit_time"].iloc[1]
+
+        _, scores = my_pipeline.compare_models(sort="model_predict_time")
+        assert (
+            scores["model_predict_time"].iloc[0] <= scores["model_predict_time"].iloc[1]
+        )
+
+    def test_compare_models_sort_cv(self, tmp_path):
+        # create dummy files
+        config_file = tmp_path / "config.yaml"
+        mat_file = tmp_path / "data.mat"
+        creat_dummy_config(config_file, mat_file)
+        create_dummy_mat_file(mat_file)
+
+        # test setup
+        my_pipeline = Pipeline(config_file)
+        my_pipeline.setup(data="exp1")
+
+        _, scores = my_pipeline.compare_models(
+            sort="model_fit_time", cross_validation=True
+        )
+        assert scores["model_fit_time"].iloc[0] <= scores["model_fit_time"].iloc[1]
+
+        _, scores = my_pipeline.compare_models(
+            sort="model_predict_time", cross_validation=True
+        )
+        assert (
+            scores["model_predict_time"].iloc[0] <= scores["model_predict_time"].iloc[1]
+        )
 
     def test_compare_models_onnx(self, tmp_path):
         # create dummy files
