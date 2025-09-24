@@ -35,7 +35,7 @@ ml_setup:
       ]
   save_grid_scores: True
   save_best_model: True
-  log_experiment: True
+  log_experiment: False
   n_jobs: 2
   use_gpu: False
   train_test_split_kwargs: {"train_size": 0.75, "shuffle": True, "random_state": 42}
@@ -50,6 +50,6 @@ ml_setup:
       "MultilayerPerceptron": {"hidden_layer_sizes": 10, "max_iter": 10}, # Multilayer Perceptron
       "XGBoostRegression": {"n_estimators": 100, "max_depth": 4, "tree_method": "hist"}, # XGBoost
   }
-  metric_names : ["neg_mean_squared_error", "neg_root_mean_squared_error", "r2", "model_fit_time"]
+  metric_names : ["neg_mean_squared_error", "neg_root_mean_squared_error", "r2", "model_fit_time", "model_predict_time"]
 session_setup:
   work_dir: "."

@@ -228,11 +228,11 @@ class Pipeline:
 
         if sort not in grid_scores.columns:
             raise ValueError(
-                f"Default sort {sort} not in metrics {grid_scores.columns.tolist()}"
+                f"Sort '{sort}' not in metrics {grid_scores.columns.tolist()}"
                 " provided. Choose one of the metrics to sort the models."
             )
 
-        ascending = sort == "model_fit_time"
+        ascending = sort in {"model_fit_time", "model_predict_time"}
         self.grid_scores_sorted = grid_scores.sort_values(by=sort, ascending=ascending)
 
         self._log_model()
