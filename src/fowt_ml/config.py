@@ -69,6 +69,7 @@ class MLConfig(BaseConfig):
     log_experiment: bool = False
     n_jobs: int = 1
     use_gpu: bool = False
+    scale_data: bool = True
     train_test_split_kwargs: dict[str, Any] = {
         "test_size": 0.25,
         "random_state": 42,

@@ -7,8 +7,11 @@ import numpy as np
 import pandas as pd
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator
+from sklearn.compose import TransformedTargetRegressor
+from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import check_scoring
 from sklearn.model_selection import cross_validate
+from sklearn.pipeline import Pipeline
 
 
 class BaseModel:
@@ -134,6 +137,24 @@ class BaseModel:
                 results["model_fit_time"] = np.round(v, 3)
 
         return results
+
+    def use_scaled_data(self):
+        """Wrap the estimator to use scaled data for both X and y."""
+        if isinstance(self.estimator, TransformedTargetRegressor):
+            return self  # already wrapped
+
+        # Pipeline for input scaling + model
+        regressor = Pipeline([
+            ("scaler", StandardScaler()),
+            ("model", self.estimator)
+        ])
+
+        # Wrap with TransformedTargetRegressor for y scaling
+        self.estimator = TransformedTargetRegressor(
+            regressor=regressor,
+            transformer=StandardScaler()
+        )
+        return self
 
 
 def _measure_fit_time(estimator, x_train, y_train) -> float:

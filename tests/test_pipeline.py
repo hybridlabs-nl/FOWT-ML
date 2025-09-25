@@ -229,6 +229,7 @@ class TestPipelineCompare:
 
         # test setup
         my_pipeline = Pipeline(config_file)
+        my_pipeline.scale_data = False  # ONNX does not support TransformedTargetRegressor
         my_pipeline.model_names = {
             "LinearRegression": {},
         }  # choose one model to control the test
@@ -236,6 +237,7 @@ class TestPipelineCompare:
         model, scores = my_pipeline.compare_models()
         best_model_name = scores.index[0]
         fitted_model = model[best_model_name]
+
         expected_pred = fitted_model.predict(my_pipeline.X_test)
 
         # read the onnx model
@@ -246,6 +248,32 @@ class TestPipelineCompare:
         output_name = sess.get_outputs()[0].name
         x = my_pipeline.X_test.to_numpy(dtype=np.float32)
         actual_pred = sess.run([output_name], {input_name: x})[0]
+
+        np.testing.assert_allclose(expected_pred, actual_pred, rtol=1e-5)
+
+    def test_compare_models_joblib(self, tmp_path):
+        # create dummy files
+        config_file = tmp_path / "config.yaml"
+        mat_file = tmp_path / "data.mat"
+        creat_dummy_config(config_file, mat_file)
+        create_dummy_mat_file(mat_file)
+
+        # test setup
+        my_pipeline = Pipeline(config_file)
+        my_pipeline.model_names = {
+            "LinearRegression": {},
+        }  # choose one model to control the test
+        my_pipeline.setup(data="exp1")
+        model, scores = my_pipeline.compare_models()
+        best_model_name = scores.index[0]
+        fitted_model = model[best_model_name]
+
+        expected_pred = fitted_model.predict(my_pipeline.X_test)
+
+        # read the joblib model
+        import joblib
+        loaded_model = joblib.load("best_model.joblib")
+        actual_pred = loaded_model.predict(my_pipeline.X_test)
 
         np.testing.assert_allclose(expected_pred, actual_pred, rtol=1e-5)
 

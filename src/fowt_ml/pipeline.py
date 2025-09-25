@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 from typing import Any
+import joblib
 import mlflow
 import pandas as pd
 from skl2onnx import convert_sklearn
@@ -38,6 +39,7 @@ class Pipeline:
         self.metric_names = config["ml_setup"]["metric_names"]
         self.train_test_split_kwargs = config["ml_setup"]["train_test_split_kwargs"]
         self.cross_validation_kwargs = config["ml_setup"]["cross_validation_kwargs"]
+        self.scale_data = config["ml_setup"]["scale_data"]
 
         self.work_dir = Path(config["session_setup"]["work_dir"])
         self.work_dir.mkdir(parents=True, exist_ok=True)
@@ -148,6 +150,9 @@ class Pipeline:
         """
         model = self.model_instances[model_name]
 
+        if self.scale_data:
+            model.use_scaled_data()
+
         if cross_validation:
             all_scores = model.cross_validate(
                 self.X_train,
@@ -193,16 +198,23 @@ class Pipeline:
         if self.save_best_model:
             best_model_name = self.grid_scores_sorted.index[0]
             best_model = self.fitted_models[best_model_name]
-            file_name = self.work_dir / "best_model.onnx"
 
-            initial_type = [
-                ("input", FloatTensorType([None, len(self.predictors_labels)]))
-            ]
-            onnx_model = convert_sklearn(best_model, initial_types=initial_type)
+            # the TransformedTargetRegressor is not supported in ONNX
+            # see https://onnx.ai/sklearn-onnx/supported.html#supported-scikit-learn-models
+            if self.scale_data:
+                file_name = self.work_dir / "best_model.joblib"
+                joblib.dump(best_model, file_name)
+                logger.info(f"Saving best model to joblib format in {file_name}")
+            else:
+                file_name = self.work_dir / "best_model.onnx"
+                initial_type = [
+                    ("input", FloatTensorType([None, len(self.predictors_labels)]))
+                ]
+                onnx_model = convert_sklearn(best_model, initial_types=initial_type)
 
-            logger.info("Saving best model to ONNX format in {file_name}")
-            with open(file_name, "wb") as f:
-                f.write(onnx_model.SerializeToString())
+                logger.info(f"Saving best model to ONNX format in {file_name}")
+                with open(file_name, "wb") as f:
+                    f.write(onnx_model.SerializeToString())
 
     def compare_models(self, sort: str = "r2", cross_validation: bool = False) -> Any:
         """Compares the models and returns the best model.
