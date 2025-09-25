@@ -32,7 +32,7 @@ def test_get_data_with_wind_speed(tmp_path, caplog):
     config = {
         data_id: {
             "path_file": str(mat_file),
-            "wind_speed": 10.0,
+            "aux_data": {"wind_speed": 10.0},
             "description": "Test data",
         }
     }
@@ -42,7 +42,7 @@ def test_get_data_with_wind_speed(tmp_path, caplog):
     assert df.shape == (50, 5)  # wind_speed column added
     assert "wind_speed" in df.columns
     assert "description" not in df.columns
-    assert any("Wind speed not found" in record.message for record in caplog.records)
+    assert any("wind_speed not found in the data file." in record.message for record in caplog.records)
 
 
 def test_get_data_without_wind_speed(tmp_path):

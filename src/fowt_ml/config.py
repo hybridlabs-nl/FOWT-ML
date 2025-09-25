@@ -58,7 +58,7 @@ class BaseConfig(pydantic.BaseModel):
 
 class ExperimentConfig(BaseConfig):
     path_file: str
-    wind_speed: float | None = None
+    aux_data: dict[str, float] = {}
 
 
 class MLConfig(BaseConfig):

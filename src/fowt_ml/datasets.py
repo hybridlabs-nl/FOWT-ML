@@ -67,16 +67,17 @@ def get_data(data_id: str, config: dict) -> pd.DataFrame:
     data_info = config[data_id]
     df = convert_mat_to_df(data_info["path_file"], data_id)
 
-    # check if wind speed is present
-    if "wind_speed" not in df and "wind_speed" in data_info:
-        if data_info["wind_speed"] is not None:
-            df["wind_speed"] = data_info["wind_speed"]
-            msg = (
-                f"Wind speed not found in the data file. "
-                f"But found in config file. "
-                f"Setting it to {data_info['wind_speed']}."
-            )
-            logger.info(msg)
+    # check if auxiliary data is present in the config file
+    if "aux_data" in data_info:
+        for key, val in data_info["aux_data"].items():
+            if key not in df and val is not None:
+                df[key] = val
+                msg = (
+                    f"{key} not found in the data file. "
+                    f"But found in config file. "
+                    f"Setting it to {val}."
+                )
+                logger.info(msg)
     return df
 
 
