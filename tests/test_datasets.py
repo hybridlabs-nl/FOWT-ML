@@ -42,7 +42,10 @@ def test_get_data_with_wind_speed(tmp_path, caplog):
     assert df.shape == (50, 5)  # wind_speed column added
     assert "wind_speed" in df.columns
     assert "description" not in df.columns
-    assert any("wind_speed not found in the data file." in record.message for record in caplog.records)
+    assert any(
+        "wind_speed not found in the data file." in record.message
+        for record in caplog.records
+    )
 
 
 def test_get_data_without_wind_speed(tmp_path):

@@ -8,10 +8,10 @@ import pandas as pd
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator
 from sklearn.compose import TransformedTargetRegressor
-from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import check_scoring
 from sklearn.model_selection import cross_validate
 from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 
 class BaseModel:
@@ -144,15 +144,11 @@ class BaseModel:
             return self  # already wrapped
 
         # Pipeline for input scaling + model
-        regressor = Pipeline([
-            ("scaler", StandardScaler()),
-            ("model", self.estimator)
-        ])
+        regressor = Pipeline([("scaler", StandardScaler()), ("model", self.estimator)])
 
         # Wrap with TransformedTargetRegressor for y scaling
         self.estimator = TransformedTargetRegressor(
-            regressor=regressor,
-            transformer=StandardScaler()
+            regressor=regressor, transformer=StandardScaler()
         )
         return self
 

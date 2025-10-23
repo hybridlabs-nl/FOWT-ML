@@ -229,7 +229,9 @@ class TestPipelineCompare:
 
         # test setup
         my_pipeline = Pipeline(config_file)
-        my_pipeline.scale_data = False  # ONNX does not support TransformedTargetRegressor
+
+        # ONNX does not support TransformedTargetRegressor
+        my_pipeline.scale_data = False
         my_pipeline.model_names = {
             "LinearRegression": {},
         }  # choose one model to control the test
@@ -272,6 +274,7 @@ class TestPipelineCompare:
 
         # read the joblib model
         import joblib
+
         loaded_model = joblib.load("best_model.joblib")
         actual_pred = loaded_model.predict(my_pipeline.X_test)
 
