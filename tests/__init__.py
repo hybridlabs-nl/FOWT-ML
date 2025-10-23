@@ -64,7 +64,7 @@ def creat_dummy_config(config_file, mat_file):
         scale_data: True
         save_grid_scores: True
         save_best_model: True
-        log_experiment: True
+        log_experiment: False
         train_test_split_kwargs: {train_test_split_kwargs}
         cross_validation_kwargs:
             cv: 5

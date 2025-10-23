@@ -52,7 +52,7 @@ class Pipeline:
     def _setup_mlflow(self):
         mlruns_dir = self.work_dir / "mlruns"
         mlruns_dir.mkdir(parents=True, exist_ok=True)
-        mlflow.set_tracking_uri(str(mlruns_dir))
+        mlflow.set_tracking_uri(mlruns_dir.as_uri())
         mlflow_experiment = mlflow.get_experiment_by_name("comparison")
         if mlflow_experiment:
             self.experiment_id = mlflow_experiment.experiment_id

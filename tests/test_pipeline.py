@@ -136,6 +136,19 @@ class TestPipelineSetup:
         # check working directory set
         assert my_pipeline.work_dir.exists()
 
+    def test_setup_mlflow(self, tmp_path):
+        # create dummy files
+        config_file = tmp_path / "config.yaml"
+        mat_file = tmp_path / "data.mat"
+        creat_dummy_config(config_file, mat_file)
+        create_dummy_mat_file(mat_file)
+
+        # test setup
+        my_pipeline = Pipeline(config_file)
+        my_pipeline.work_dir = tmp_path
+        my_pipeline.log_experiment = True
+        my_pipeline.setup(data="exp1")
+
         # check mlflow directory created
         assert Path(tmp_path / "mlruns").exists()
 
