@@ -42,15 +42,12 @@ class Pipeline:
         self.scale_data = config["ml_setup"]["scale_data"]
 
         self.work_dir = Path(config["session_setup"]["work_dir"])
-        self.work_dir.mkdir(parents=True, exist_ok=True)
 
         self.data_config = config["data"]
         self.save_grid_scores = config["ml_setup"]["save_grid_scores"]
         self.save_best_model = config["ml_setup"]["save_best_model"]
 
         self.log_experiment = config["ml_setup"]["log_experiment"]
-        if self.log_experiment:
-            self._setup_mlflow()
 
     def _setup_mlflow(self):
         mlruns_dir = self.work_dir / "mlruns"
@@ -140,6 +137,13 @@ class Pipeline:
         )
 
         self.model_instances = self.get_models()
+
+        # create work directory
+        self.work_dir.mkdir(parents=True, exist_ok=True)
+
+        # setup mlflow if logging is enabled
+        if self.log_experiment:
+            self._setup_mlflow()
 
     def _run_model(self, model_name, cross_validation: bool) -> tuple[Any, dict]:
         """Runs the models on the training data.

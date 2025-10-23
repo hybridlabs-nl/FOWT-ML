@@ -15,12 +15,11 @@ class TestPipelineInit:
         creat_dummy_config(config_file, mat_file)
 
         my_pipeline = Pipeline(config_file)
+        my_pipeline.work_dir = tmp_path
 
         assert hasattr(my_pipeline, "predictors_labels")
         assert hasattr(my_pipeline, "target_labels")
         assert "LinearRegression" in my_pipeline.model_names
-        # check mlflow directory created
-        assert Path("mlruns").exists()
 
     def test_init_config_dict(self, tmp_path):
         config_file = tmp_path / "config.yaml"
@@ -124,6 +123,7 @@ class TestPipelineSetup:
 
         # test setup
         my_pipeline = Pipeline(config_file)
+        my_pipeline.work_dir = tmp_path
         my_pipeline.setup(data="exp1")
         assert hasattr(my_pipeline, "X_data")
         assert hasattr(my_pipeline, "Y_data")
@@ -132,6 +132,12 @@ class TestPipelineSetup:
         assert hasattr(my_pipeline, "Y_train")
         assert hasattr(my_pipeline, "Y_test")
         assert hasattr(my_pipeline, "model_instances")
+
+        # check working directory set
+        assert my_pipeline.work_dir.exists()
+
+        # check mlflow directory created
+        assert Path(tmp_path / "mlruns").exists()
 
     def test_setup_df(self, tmp_path):
         # create dummy files
@@ -163,6 +169,7 @@ class TestPipelineCompare:
 
         # test setup
         my_pipeline = Pipeline(config_file)
+        my_pipeline.work_dir = tmp_path
         my_pipeline.setup(data="exp1")
         models, scores = my_pipeline.compare_models()
         assert isinstance(scores, pd.DataFrame)
@@ -173,8 +180,10 @@ class TestPipelineCompare:
         assert "LinearRegression" in models
         # check model is fitted
         assert check_is_fitted(models["LinearRegression"]) is None
-        assert Path("grid_scores.csv").exists()
-        assert Path("best_model.onnx").exists()
+        assert Path(tmp_path / "grid_scores.csv").exists()
+
+        # scale_data is true in config, so joblib model should exist
+        assert Path(tmp_path / "best_model.joblib").exists()
         # check sorting of scores
         assert scores["r2"].iloc[0] >= scores["r2"].iloc[1]
 
@@ -289,6 +298,7 @@ class TestPipelineCompare:
 
         # test setup
         my_pipeline = Pipeline(config_file)
+        my_pipeline.work_dir = tmp_path
         my_pipeline.setup(data="exp1")
         models, scores = my_pipeline.compare_models(cross_validation=True)
         assert isinstance(scores, pd.DataFrame)
@@ -299,7 +309,7 @@ class TestPipelineCompare:
         assert "LinearRegression" in models
         # check model is fitted
         assert check_is_fitted(models["LinearRegression"]) is None
-        assert Path("grid_scores.csv").exists()
-        assert Path("best_model.onnx").exists()
+        assert Path(tmp_path / "grid_scores.csv").exists()
+        assert Path(tmp_path / "best_model.joblib").exists()
         # check sorting of scores
         assert scores["r2"].iloc[0] >= scores["r2"].iloc[1]
