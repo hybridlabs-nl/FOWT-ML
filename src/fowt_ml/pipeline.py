@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 from typing import Any
+import joblib
 import mlflow
 import pandas as pd
 from skl2onnx import convert_sklearn
@@ -38,22 +39,20 @@ class Pipeline:
         self.metric_names = config["ml_setup"]["metric_names"]
         self.train_test_split_kwargs = config["ml_setup"]["train_test_split_kwargs"]
         self.cross_validation_kwargs = config["ml_setup"]["cross_validation_kwargs"]
+        self.scale_data = config["ml_setup"]["scale_data"]
 
         self.work_dir = Path(config["session_setup"]["work_dir"])
-        self.work_dir.mkdir(parents=True, exist_ok=True)
 
         self.data_config = config["data"]
         self.save_grid_scores = config["ml_setup"]["save_grid_scores"]
         self.save_best_model = config["ml_setup"]["save_best_model"]
 
         self.log_experiment = config["ml_setup"]["log_experiment"]
-        if self.log_experiment:
-            self._setup_mlflow()
 
     def _setup_mlflow(self):
         mlruns_dir = self.work_dir / "mlruns"
         mlruns_dir.mkdir(parents=True, exist_ok=True)
-        mlflow.set_tracking_uri(str(mlruns_dir))
+        mlflow.set_tracking_uri(mlruns_dir.as_uri())
         mlflow_experiment = mlflow.get_experiment_by_name("comparison")
         if mlflow_experiment:
             self.experiment_id = mlflow_experiment.experiment_id
@@ -139,6 +138,13 @@ class Pipeline:
 
         self.model_instances = self.get_models()
 
+        # create work directory
+        self.work_dir.mkdir(parents=True, exist_ok=True)
+
+        # setup mlflow if logging is enabled
+        if self.log_experiment:
+            self._setup_mlflow()
+
     def _run_model(self, model_name, cross_validation: bool) -> tuple[Any, dict]:
         """Runs the models on the training data.
 
@@ -147,6 +153,9 @@ class Pipeline:
 
         """
         model = self.model_instances[model_name]
+
+        if self.scale_data:
+            model.use_scaled_data()
 
         if cross_validation:
             all_scores = model.cross_validate(
@@ -193,16 +202,23 @@ class Pipeline:
         if self.save_best_model:
             best_model_name = self.grid_scores_sorted.index[0]
             best_model = self.fitted_models[best_model_name]
-            file_name = self.work_dir / "best_model.onnx"
 
-            initial_type = [
-                ("input", FloatTensorType([None, len(self.predictors_labels)]))
-            ]
-            onnx_model = convert_sklearn(best_model, initial_types=initial_type)
+            # the TransformedTargetRegressor is not supported in ONNX
+            # see https://onnx.ai/sklearn-onnx/supported.html#supported-scikit-learn-models
+            if self.scale_data:
+                file_name = self.work_dir / "best_model.joblib"
+                joblib.dump(best_model, file_name)
+                logger.info(f"Saving best model to joblib format in {file_name}")
+            else:
+                file_name = self.work_dir / "best_model.onnx"
+                initial_type = [
+                    ("input", FloatTensorType([None, len(self.predictors_labels)]))
+                ]
+                onnx_model = convert_sklearn(best_model, initial_types=initial_type)
 
-            logger.info("Saving best model to ONNX format in {file_name}")
-            with open(file_name, "wb") as f:
-                f.write(onnx_model.SerializeToString())
+                logger.info(f"Saving best model to ONNX format in {file_name}")
+                with open(file_name, "wb") as f:
+                    f.write(onnx_model.SerializeToString())
 
     def compare_models(self, sort: str = "r2", cross_validation: bool = False) -> Any:
         """Compares the models and returns the best model.

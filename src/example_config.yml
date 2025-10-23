@@ -1,43 +1,40 @@
 data:
   exp699:
     path_file: ./exp699.mat
-    wind_speed: 4.0
+    aux_data: {
+      'wind_speed': 4.0,
+    }
 ml_setup:
   targets: [
-      'force_aero_est6[0]',
-      'force_aero_est6[1]',
-      'force_aero_est6[2]',
-      'force_aero_est6[3]',
-      'force_aero_est6[4]',
-      'force_aero_est6[5]',
-      'force_tt_meas6[0]',
-      'force_tt_meas6[1]',
-      'force_tt_meas6[2]',
-      'force_tt_meas6[3]',
-      'force_tt_meas6[4]',
-      'force_tt_meas6[5]',
-              ]
-  predictors: [
-      'acc_tb_meas3[0]',
-      'acc_tb_meas3[1]',
-      'acc_tb_meas3[2]',
-      'acc_tt_meas3[0]',
-      'acc_tt_meas3[1]',
-      'acc_tt_meas3[2]',
       'pos_act6[0]',
       'pos_act6[1]',
       'pos_act6[2]',
       'pos_act6[3]',
       'pos_act6[4]',
       'pos_act6[5]',
+      ]
+  predictors: [
+      'force_tt_meas6[0]',
+      'force_tt_meas6[1]',
+      'force_tt_meas6[2]',
+      'force_tt_meas6[3]',
+      'force_tt_meas6[4]',
+      'force_tt_meas6[5]',
+      'acc_tb_meas3[0]',
+      'acc_tb_meas3[1]',
+      'acc_tb_meas3[2]',
+      'acc_tt_meas3[0]',
+      'acc_tt_meas3[1]',
+      'acc_tt_meas3[2]',
       'spd_rot_act',
       'wind_speed',
       ]
   save_grid_scores: True
   save_best_model: True
-  log_experiment: False
+  log_experiment: True
   n_jobs: 2
   use_gpu: False
+  scale_data: True
   train_test_split_kwargs: {"train_size": 0.75, "shuffle": True, "random_state": 42}
   cross_validation_kwargs: {"cv": 3}
   model_names: {  # models that supports multi-output regression
@@ -45,11 +42,11 @@ ml_setup:
       "LeastAngleRegression": {}, # Least Angle Regression
       "LassoRegression": {}, # Lasso Regression
       "LinearRegression": {}, # Linear Regression
-      "SklearnGPRegressor": {"num_inducing": 100, "num_latents": 3, "num_epochs": 1}, # Gaussian Process Regression
-      "RandomForest": {"n_estimators": 50, "max_depth": 9, "bootstrap": True, "max_samples": 10_000}, # Random Forest
-      "MultilayerPerceptron": {"hidden_layer_sizes": 10, "max_iter": 10}, # Multilayer Perceptron
-      "XGBoostRegression": {"n_estimators": 100, "max_depth": 4, "tree_method": "hist"}, # XGBoost
+      "SklearnGPRegressor": {"num_inducing": 100, "num_latents": 3, "num_epochs": 10}, # Gaussian Process Regression
+      "RandomForest": {"n_estimators": 50, "max_depth": 5, "bootstrap": True, "max_samples": 10_000}, # Random Forest
+      "MultilayerPerceptron": {"hidden_layer_sizes": 10, "max_iter": 50}, # Multilayer Perceptron
+      "XGBoostRegression": {"n_estimators": 10, "max_depth": 10, "tree_method": "hist"}, # XGBoost
   }
-  metric_names : ["neg_mean_squared_error", "neg_root_mean_squared_error", "r2", "model_fit_time", "model_predict_time"]
+  metric_names : ["neg_mean_absolute_error", "neg_root_mean_squared_error", "r2", "model_fit_time", "model_predict_time"]
 session_setup:
   work_dir: "."

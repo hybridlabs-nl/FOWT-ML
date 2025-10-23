@@ -15,19 +15,18 @@ class TestBaseConfig:
     def test_getitem_setitem(self):
         cfg = ExperimentConfig(
             path_file="test_config",
-            wind_speed=10.0,
+            aux_data={"wind_speed": 10.0},
         )
         assert cfg["path_file"] == "test_config"
-        cfg["wind_speed"] = 4.0
-        assert cfg.wind_speed == 4.0
+        cfg["aux_data"]["wind_speed"] = 4.0
+        assert cfg.aux_data["wind_speed"] == 4.0
 
     def test_contains(self):
         cfg = ExperimentConfig(
             path_file="test_config",
         )
-        assert "wind_speed" in cfg
-        assert cfg["wind_speed"] is None
-        assert "nonexistent_field" not in cfg
+        assert cfg["aux_data"] == {}
+        assert "wind_speed" not in cfg
 
 
 class TestConfig:
