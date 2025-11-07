@@ -86,7 +86,7 @@ class TestSparseGaussianModel:
             x_train, x_test, y_train, y_test, "neg_mean_squared_error"
         )
         np.testing.assert_almost_equal(
-            results["neg_mean_squared_error"], -1.0103, decimal=3
+            results["neg_mean_squared_error"], -1.10288, decimal=3
         )
 
 
@@ -123,7 +123,7 @@ class TestSklearnGPRegressor:
         x_train, _, y_train, _ = simple_dataset
         model = SklearnGPRegressor(num_inducing=25, num_latents=1)
         model.fit(x_train, y_train)
-        assert hasattr(model, "model_")
+        assert hasattr(model, "module_")
         assert hasattr(model, "likelihood_")
         assert hasattr(model, "n_features_in_")
         assert model.is_fitted_

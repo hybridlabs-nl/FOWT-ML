@@ -16,12 +16,12 @@ def test_convert_mat_to_df(tmp_path):
 
     data_id = "exp1"
     df = convert_mat_to_df(mat_file, data_id)
-
-    assert df.shape == (50, 4)
+    assert df.shape == (50, 5)
     assert "time" in df.columns
-    assert "acc_tb_meas3[0]" in df.columns
-    assert "acc_tb_meas3[1]" in df.columns
-    assert "acc_tb_meas3[2]" in df.columns
+    assert "force_tt_meas6[0]" in df.columns
+    assert "force_tt_meas6[1]" in df.columns
+    assert "force_tt_meas6[2]" in df.columns
+    assert "pos_act6[0]" in df.columns
 
 
 def test_get_data_with_wind_speed(tmp_path, caplog):
@@ -39,7 +39,7 @@ def test_get_data_with_wind_speed(tmp_path, caplog):
     with caplog.at_level(logging.INFO):
         df = get_data(data_id, config)
 
-    assert df.shape == (50, 5)  # wind_speed column added
+    assert df.shape == (50, 6)  # wind_speed column added
     assert "wind_speed" in df.columns
     assert "description" not in df.columns
     assert any(
@@ -62,7 +62,7 @@ def test_get_data_without_wind_speed(tmp_path):
 
     df = get_data(data_id, config)
 
-    assert df.shape == (50, 4)
+    assert df.shape == (50, 5)
     assert "wind_speed" not in df.columns
 
 
@@ -79,7 +79,12 @@ def test_check_data(tmp_path):
     }
 
     df = get_data(data_id, config)
-    col_names = ["acc_tb_meas3[0]", "acc_tb_meas3[1]", "acc_tb_meas3[2]"]
+    col_names = [
+        "pos_act6[0]",
+        "force_tt_meas6[0]",
+        "force_tt_meas6[1]",
+        "force_tt_meas6[2]",
+    ]
     df = check_data(df, col_names)
 
     assert isinstance(df, type(df))
@@ -101,7 +106,7 @@ def test_check_missing(tmp_path):
     }
 
     df = get_data(data_id, config)
-    col_names = ["acc_tb_meas3[0]", "acc_tb_meas3[1]", "acc_tb_meas3[3]"]
+    col_names = ["pos_act6[1]"]
     with pytest.raises(ValueError, match="Missing columns:"):
         df = check_data(df, col_names)
 
@@ -119,8 +124,13 @@ def test_check_null(tmp_path):
     }
 
     df = get_data(data_id, config)
-    col_names = ["acc_tb_meas3[0]", "acc_tb_meas3[1]", "acc_tb_meas3[2]"]
-    df.loc[0, "acc_tb_meas3[1]"] = np.nan
+    col_names = [
+        "pos_act6[0]",
+        "force_tt_meas6[0]",
+        "force_tt_meas6[1]",
+        "force_tt_meas6[2]",
+    ]
+    df.loc[0, "pos_act6[0]"] = np.nan
     with pytest.raises(ValueError, match="has NaN values"):
         df = check_data(df, col_names)
 
@@ -138,8 +148,13 @@ def test_check_numeric(tmp_path):
     }
 
     df = get_data(data_id, config)
-    col_names = ["acc_tb_meas3[0]", "acc_tb_meas3[1]", "acc_tb_meas3[2]"]
-    df["acc_tb_meas3[1]"] = df["acc_tb_meas3[1]"].astype(object)
+    col_names = [
+        "pos_act6[0]",
+        "force_tt_meas6[0]",
+        "force_tt_meas6[1]",
+        "force_tt_meas6[2]",
+    ]
+    df["pos_act6[0]"] = df["pos_act6[0]"].astype(object)
     with pytest.raises(ValueError, match="is not numeric"):
         df = check_data(df, col_names)
 
@@ -158,6 +173,6 @@ def test_fix_column_names(tmp_path):
 
     df = get_data(data_id, config)
     df = fix_column_names(df)
-    assert "acc_tb_meas3[0]" not in df.columns
-    assert "acc_tb_meas3_0" in df.columns
+    assert "pos_act6[0]" not in df.columns
+    assert "pos_act6_0" in df.columns
     assert isinstance(df, type(df))
