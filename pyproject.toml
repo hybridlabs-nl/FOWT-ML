@@ -35,6 +35,7 @@ dependencies = [
     "scikit-learn>=1.5",
     "skl2onnx",  # for saving sklearn models in ONNX format
     "xgboost",  # for XGBoost models
+    "onnxscript>=0.1.0",  # for converting PyTorch models to ONNX
 ]
 description = "Machine learning (ML) kit for floating offshore wind turbines (FOWT)"
 keywords = ["wind turbine"," machine learning"," NN"," ML"," FOWT"]
