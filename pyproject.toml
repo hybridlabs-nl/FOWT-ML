@@ -31,6 +31,7 @@ dependencies = [
     "numpy",
     "pandas",
     "pyyaml",  # for configuration files
+    "skorch",  # for wrapping PyTorch models to sklearn interface
     "scikit-learn>=1.5",
     "skl2onnx",  # for saving sklearn models in ONNX format
     "xgboost",  # for XGBoost models
