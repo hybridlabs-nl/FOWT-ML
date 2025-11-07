@@ -3,13 +3,14 @@ from pathlib import Path
 from typing import Any
 import joblib
 import mlflow
+import numpy as np
 import pandas as pd
+import torch
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 from sklearn.model_selection import train_test_split
 from fowt_ml.config import Config
 from fowt_ml.datasets import check_data
-from fowt_ml.datasets import fix_column_names
 from fowt_ml.datasets import get_data
 from fowt_ml.ensemble import EnsembleModel
 from fowt_ml.gaussian_process import SparseGaussianModel
@@ -52,7 +53,7 @@ class Pipeline:
     def _setup_mlflow(self):
         mlruns_dir = self.work_dir / "mlruns"
         mlruns_dir.mkdir(parents=True, exist_ok=True)
-        mlflow.set_tracking_uri(mlruns_dir.as_uri())
+        mlflow.set_tracking_uri(mlruns_dir.resolve().as_uri())
         mlflow_experiment = mlflow.get_experiment_by_name("comparison")
         if mlflow_experiment:
             self.experiment_id = mlflow_experiment.experiment_id
@@ -128,14 +129,15 @@ class Pipeline:
         self.X_data = data.loc[:, self.predictors_labels]
         self.Y_data = data.loc[:, self.target_labels]
 
-        # fix column names if there are characters not supported
-        self.X_data = fix_column_names(self.X_data)
-        self.Y_data = fix_column_names(self.Y_data)
+        # convert to numpy arrays for consistency between libraries
+        self.X_data = np.asarray(self.X_data, dtype=np.float32)
+        self.Y_data = np.asarray(self.Y_data, dtype=np.float32)
 
         self.X_train, self.X_test, self.Y_train, self.Y_test = self.train_test_split(
             **self.train_test_split_kwargs
         )
 
+        # get the models
         self.model_instances = self.get_models()
 
         # create work directory
@@ -205,20 +207,19 @@ class Pipeline:
 
             # the TransformedTargetRegressor is not supported in ONNX
             # see https://onnx.ai/sklearn-onnx/supported.html#supported-scikit-learn-models
-            if self.scale_data:
+            if self.scale_data | (best_model_name == "SklearnGPRegressor"):
                 file_name = self.work_dir / "best_model.joblib"
                 joblib.dump(best_model, file_name)
                 logger.info(f"Saving best model to joblib format in {file_name}")
             else:
                 file_name = self.work_dir / "best_model.onnx"
-                initial_type = [
-                    ("input", FloatTensorType([None, len(self.predictors_labels)]))
-                ]
-                onnx_model = convert_sklearn(best_model, initial_types=initial_type)
-
+                _export_to_onnx(
+                    best_model_name,
+                    best_model,
+                    no_features=self.X_train.shape[1],
+                    file_name=file_name,
+                )
                 logger.info(f"Saving best model to ONNX format in {file_name}")
-                with open(file_name, "wb") as f:
-                    f.write(onnx_model.SerializeToString())
 
     def compare_models(self, sort: str = "r2", cross_validation: bool = False) -> Any:
         """Compares the models and returns the best model.
@@ -256,3 +257,29 @@ class Pipeline:
         self._save_best_model()
 
         return self.fitted_models, self.grid_scores_sorted
+
+
+def _export_to_onnx(model_name, best_model, no_features, file_name):
+    if model_name in {"RNNRegressor", "LSTMRegressor", "GRURegressor"}:
+        torch_model = best_model.module_
+        torch_model.eval()
+
+        example_input = torch.randn(1, no_features)
+        torch.onnx.export(
+            torch_model,
+            example_input,
+            file_name,
+            input_names=["input"],
+            output_names=["output"],
+            dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
+            opset_version=11,
+        )
+    elif model_name == "SklearnGPRegressor":
+        raise NotImplementedError(
+            "ONNX export for Gaussian Process models is not implemented."
+        )
+    else:
+        initial_type = [("input", FloatTensorType([None, no_features]))]
+        onnx_model = convert_sklearn(best_model, initial_types=initial_type)
+        with open(file_name, "wb") as f:
+            f.write(onnx_model.SerializeToString())

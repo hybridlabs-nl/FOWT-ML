@@ -6,6 +6,7 @@ from logging import Logger
 from pathlib import Path
 from typing import Any
 import pydantic
+import skorch
 import yaml
 from pydantic_core import PydanticUndefined
 from sklearn.model_selection import cross_validate
@@ -14,6 +15,7 @@ from fowt_ml.ensemble import EnsembleModel
 from fowt_ml.gaussian_process import SparseGaussianModel
 from fowt_ml.linear_models import LinearModels
 from fowt_ml.neural_network import NeuralNetwork
+from fowt_ml.neural_network import create_skorch_regressor
 from fowt_ml.xgboost import XGBoost
 
 logger = Logger(__name__)
@@ -31,7 +33,7 @@ def get_allowed_kwargs(func_or_class):
         sig = inspect.signature(func_or_class.__init__)
     else:
         sig = inspect.signature(func_or_class)
-    return set(sig.parameters.keys()) - {"self"}  # drop 'self' if class
+    return set(sig.parameters.keys()) - {"self", "kwargs"}  # drop 'self' and 'kwargs'
 
 
 class BaseConfig(pydantic.BaseModel):
@@ -130,6 +132,11 @@ class MLConfig(BaseConfig):
             # Get the constructor signature for that model class
             model_class = estimator_map[model_name]
             allowed_kwargs = get_allowed_kwargs(model_class)
+            if model_name in {"RNNRegressor", "LSTMRegressor", "GRURegressor"}:
+                model_class = create_skorch_regressor
+                allowed_kwargs = get_allowed_kwargs(model_class)
+                model_class = skorch.net.NeuralNet
+                allowed_kwargs = allowed_kwargs | get_allowed_kwargs(model_class)
 
             if invalid := set(kwargs.keys()) - allowed_kwargs:
                 raise ValueError(

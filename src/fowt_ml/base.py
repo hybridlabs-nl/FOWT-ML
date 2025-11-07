@@ -5,6 +5,7 @@ from collections.abc import Iterable
 from typing import Any
 import numpy as np
 import pandas as pd
+import torch
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator
 from sklearn.compose import TransformedTargetRegressor
@@ -173,10 +174,10 @@ def _measure_predict_latency(estimator, x_test, y=None) -> float:
     # Single-sample latency
     if isinstance(x_test, pd.DataFrame):
         sample = x_test.iloc[[0]]  # keep as DataFrame
-    elif isinstance(x_test, np.ndarray):
+    elif isinstance(x_test, np.ndarray | torch.Tensor):
         sample = x_test[:1]  # keep as 2D array
     else:
-        raise TypeError("X must be a pandas DataFrame or a NumPy array")
+        raise TypeError("X must be a pandas DataFrame, a NumPy array or torch Tensor.")
 
     start = time.perf_counter()
     _ = estimator.predict(sample)
