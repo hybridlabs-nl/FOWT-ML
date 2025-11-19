@@ -29,10 +29,13 @@ dependencies = [
     "h5py",  # for HDF5 (matlab) file handling
     "mlflow",  # for model tracking and model registry, it has pydantic as dependency
     "numpy",
+    "onnxscript>=0.1.0",  # for converting PyTorch models to ONNX
     "pandas",
     "pyyaml",  # for configuration files
+    "skorch",  # for wrapping PyTorch models to sklearn interface
     "scikit-learn>=1.5",
     "skl2onnx",  # for saving sklearn models in ONNX format
+    "torch==2.7.0",  # for neural networks
     "xgboost",  # for XGBoost models
 ]
 description = "Machine learning (ML) kit for floating offshore wind turbines (FOWT)"

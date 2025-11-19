@@ -3,6 +3,7 @@
 from collections.abc import Iterable
 from logging import Logger
 import gpytorch
+import numpy as np
 import pandas as pd
 import torch
 from numpy.typing import ArrayLike
@@ -35,7 +36,7 @@ class MultitaskGPModelApproximate(gpytorch.models.ApproximateGP):
 
     def __init__(self, inducing_points, num_latents, num_tasks):
         # convert inducing points to tensor
-        inducing_points = _to_tensor(inducing_points)
+        inducing_points = _to_tensor(inducing_points, dtype="float32", device=DEVICE)
 
         # Variational distribution + strategy: posterior for latent GPs
         # CholeskyVariationalDistribution: modeling a full covariance (not
@@ -100,10 +101,6 @@ class SklearnGPRegressor(RegressorMixin, BaseEstimator):
         self.batch_size = batch_size
         self.learning_rate = learning_rate
 
-        # sklearn multioutput regressor expects float64
-        # see check_multioutput_regressor
-        torch.set_default_dtype(torch.float64)
-
     def __sklearn_tags__(self):
         tags = super().__sklearn_tags__()
         tags.target_tags.two_d_labels = True
@@ -118,8 +115,8 @@ class SklearnGPRegressor(RegressorMixin, BaseEstimator):
         # Check that X and y have correct shape
         x_train, y_train = check_X_y(x_train, y_train, multi_output=True)
 
-        x_train = _to_tensor(x_train)
-        y_train = _to_tensor(y_train)
+        x_train = _to_tensor(x_train, dtype="float32", device=DEVICE)
+        y_train = _to_tensor(y_train, dtype="float32", device=DEVICE)
 
         # add some sklearn variables
         self.X_ = x_train
@@ -132,22 +129,22 @@ class SklearnGPRegressor(RegressorMixin, BaseEstimator):
 
         inducing_points = x_train[torch.randperm(x_train.size(0))[: self.num_inducing]]
 
-        self.model_ = MultitaskGPModelApproximate(
+        self.module_ = MultitaskGPModelApproximate(
             inducing_points=inducing_points,
             num_latents=self.num_latents,
             num_tasks=y_train.size(1),
         ).to(DEVICE)
 
-        self.likelihood_ = self.model_.likelihood
+        self.likelihood_ = self.module_.likelihood
 
         # Train the model
-        self.model_.train()
+        self.module_.train()
         self.likelihood_.train()
 
-        optimizer = torch.optim.Adam(self.model_.parameters(), lr=self.learning_rate)
+        optimizer = torch.optim.Adam(self.module_.parameters(), lr=self.learning_rate)
         # marginal log likelihood (mll)
         mll = gpytorch.mlls.VariationalELBO(
-            self.likelihood_, self.model_, num_data=x_train.size(0)
+            self.likelihood_, self.module_, num_data=x_train.size(0)
         )
 
         # TODO optimize the loops
@@ -162,7 +159,7 @@ class SklearnGPRegressor(RegressorMixin, BaseEstimator):
                 batches = [(x_train, y_train)]
             for x_batch, y_batch in batches:
                 optimizer.zero_grad()
-                output = self.model_(x_batch)
+                output = self.module_(x_batch)
                 loss = -mll(output, y_batch)
                 loss.backward()
                 optimizer.step()
@@ -179,7 +176,7 @@ class SklearnGPRegressor(RegressorMixin, BaseEstimator):
     def predict(self, x_array: ArrayLike) -> ArrayLike:
         """Make predictions using the trained model."""
         # Check if the model has been fitted
-        check_is_fitted(self, ["is_fitted_", "model_", "likelihood_"])
+        check_is_fitted(self, ["is_fitted_", "module_", "likelihood_"])
 
         # Check that X has correct shape
         x_array = check_array(x_array)
@@ -190,9 +187,9 @@ class SklearnGPRegressor(RegressorMixin, BaseEstimator):
                 f"Expected {self.n_features_in_} features, "
                 f"but got {x_array.shape[1]} features."
             )
-        x_array = _to_tensor(x_array)
+        x_array = _to_tensor(x_array, dtype="float32", device=DEVICE)
 
-        self.model_.eval()
+        self.module_.eval()
         self.likelihood_.eval()
 
         all_preds = []
@@ -205,10 +202,12 @@ class SklearnGPRegressor(RegressorMixin, BaseEstimator):
             else:  # Treat entire dataset as one batch
                 batches = [(x_array,)]
             for (x_batch,) in batches:
-                predictions = self.likelihood_(self.model_(x_batch))
+                predictions = self.likelihood_(self.module_(x_batch))
                 all_preds.append(predictions.mean.cpu())
 
-        return torch.cat(all_preds, dim=0).numpy()
+        # sklearn multioutput regressor expects float64
+        # see check_multioutput_regressor
+        return torch.cat(all_preds, dim=0).numpy().astype(np.float64)
 
     def score(self, x, y):
         """Return the R^2 score of the prediction."""
@@ -224,15 +223,23 @@ class SparseGaussianModel(BaseModel):
     }
 
 
-def _to_tensor(array: ArrayLike | pd.DataFrame) -> torch.Tensor:
+def _to_tensor(
+    array: ArrayLike | pd.DataFrame, dtype: str = "float32", device: str = "cpu"
+) -> torch.Tensor:
     """Convert numpy array to tensor."""
-    dtype = torch.get_default_dtype()
+    if dtype == "float32":
+        dtype = torch.float32
+    elif dtype == "float64":
+        dtype = torch.float64
+    else:
+        raise ValueError("dtype must be 'float32' or 'float64'.")
+
     if isinstance(array, torch.Tensor):
-        return array.to(DEVICE)
+        return array.to(dtype=dtype, device=device)
     elif isinstance(array, pd.DataFrame):
-        return torch.tensor(array.values, dtype=dtype).to(DEVICE)
+        return torch.tensor(array.values, dtype=dtype).to(device)
     elif isinstance(array, Iterable):
-        return torch.tensor(array, dtype=dtype).to(DEVICE)
+        return torch.tensor(array, dtype=dtype).to(device)
     else:
         raise ValueError("Input must be ArrayLike or pd.DataFrame.")
 

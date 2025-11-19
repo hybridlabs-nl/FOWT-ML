@@ -36,11 +36,26 @@ class TestConfig:
 
         cfg = Config.from_yaml(config_file)
         assert cfg.name == "dummy_experiment"
-        assert cfg.ml_setup["targets"] == ["acc_tb_meas3[0]"]
-        assert cfg.ml_setup["predictors"] == ["acc_tb_meas3[1]", "acc_tb_meas3[2]"]
+        assert cfg.ml_setup["targets"] == ["pos_act6[0]"]
+        assert cfg.ml_setup["predictors"] == [
+            "force_tt_meas6[0]",
+            "force_tt_meas6[1]",
+            "force_tt_meas6[2]",
+        ]
         assert cfg.ml_setup["model_names"] == {
-            "LeastAngleRegression": {},
             "LinearRegression": {},
+            "SklearnGPRegressor": {
+                "num_inducing": 50,
+                "num_latents": 3,
+                "num_epochs": 1,
+            },
+            "RNNRegressor": {
+                "input_size": 3,
+                "hidden_size": 5,
+                "num_layers": 2,
+                "output_size": 1,
+                "max_epochs": 5,
+            },
         }
 
     def test_to_yaml(self, tmp_path):

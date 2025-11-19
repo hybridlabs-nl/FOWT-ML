@@ -20,7 +20,12 @@ def create_dummy_mat_file(file_name):
         y_grp = grp.create_group("Y")
 
         # Example names and data
-        names = ["acc_tb_meas3[0]", "acc_tb_meas3[1]", "acc_tb_meas3[2]"]
+        names = [
+            "pos_act6[0]",
+            "force_tt_meas6[0]",
+            "force_tt_meas6[1]",
+            "force_tt_meas6[2]",
+        ]
         data = [np.random.rand(50) for _ in names]
 
         # Create references for the names and data
@@ -44,8 +49,15 @@ def create_dummy_mat_file(file_name):
 
 def creat_dummy_config(config_file, mat_file):
     model_names = {
-        "LeastAngleRegression": {},
         "LinearRegression": {},
+        "SklearnGPRegressor": {"num_inducing": 50, "num_latents": 3, "num_epochs": 1},
+        "RNNRegressor": {
+            "input_size": 3,
+            "hidden_size": 5,
+            "num_layers": 2,
+            "output_size": 1,
+            "max_epochs": 5,
+        },
     }
     train_test_split_kwargs = {"train_size": 0.75, "shuffle": True, "random_state": 42}
 
@@ -56,8 +68,8 @@ def creat_dummy_config(config_file, mat_file):
         exp1:
             path_file: {mat_file}
     ml_setup:
-        targets: ["acc_tb_meas3[0]"]
-        predictors: ["acc_tb_meas3[1]", "acc_tb_meas3[2]"]
+        targets: ["pos_act6[0]"]
+        predictors: ["force_tt_meas6[0]", "force_tt_meas6[1]", "force_tt_meas6[2]"]
         model_names: {model_names}
         n_jobs: 1
         use_gpu: False

@@ -45,7 +45,7 @@ class TestPipelineGetData:
         # test get_data
         my_pipeline = Pipeline(config_file)
         df = my_pipeline.get_data("exp1")
-        assert df.shape == (50, 4)
+        assert df.shape == (50, 5)
 
 
 class TestPipelineSplit:
@@ -108,9 +108,10 @@ class TestPipelineGetModels:
         # test get_models
         my_pipeline = Pipeline(config_file)
         models = my_pipeline.get_models()
-        assert "LeastAngleRegression" in models
         assert "LinearRegression" in models
-        assert len(models) == 2
+        assert "SklearnGPRegressor" in models
+        assert "RNNRegressor" in models
+        assert len(models) == 3
 
 
 class TestPipelineSetup:
@@ -189,8 +190,9 @@ class TestPipelineCompare:
         assert "r2" in scores
         assert "model_fit_time" in scores
         assert isinstance(models, dict)
-        assert "LeastAngleRegression" in models
         assert "LinearRegression" in models
+        assert "SklearnGPRegressor" in models
+        assert "RNNRegressor" in models
         # check model is fitted
         assert check_is_fitted(models["LinearRegression"]) is None
         assert Path(tmp_path / "grid_scores.csv").exists()
@@ -270,10 +272,48 @@ class TestPipelineCompare:
         sess = rt.InferenceSession("best_model.onnx")
         input_name = sess.get_inputs()[0].name
         output_name = sess.get_outputs()[0].name
-        x = my_pipeline.X_test.to_numpy(dtype=np.float32)
-        actual_pred = sess.run([output_name], {input_name: x})[0]
+        actual_pred = sess.run([output_name], {input_name: my_pipeline.X_test})[0]
 
         np.testing.assert_allclose(expected_pred, actual_pred, rtol=1e-5)
+
+    def test_compare_models_onnx_non_sklearn_model(self, tmp_path):
+        # create dummy files
+        config_file = tmp_path / "config.yaml"
+        mat_file = tmp_path / "data.mat"
+        creat_dummy_config(config_file, mat_file)
+        create_dummy_mat_file(mat_file)
+
+        # test setup
+        my_pipeline = Pipeline(config_file)
+
+        # ONNX does not support TransformedTargetRegressor
+        my_pipeline.scale_data = False
+        my_pipeline.model_names = {
+            "RNNRegressor": {
+                "input_size": 3,
+                "hidden_size": 5,
+                "num_layers": 2,
+                "output_size": 1,
+                "max_epochs": 5,
+            },
+        }  # choose one model to control the test
+
+        my_pipeline.setup(data="exp1")
+        model, scores = my_pipeline.compare_models()
+        best_model_name = scores.index[0]
+        fitted_model = model[best_model_name]
+
+        expected_pred = fitted_model.predict(my_pipeline.X_test)
+
+        # read the onnx model
+        import onnxruntime as rt
+
+        sess = rt.InferenceSession("best_model.onnx")
+        input_name = sess.get_inputs()[0].name
+        output_name = sess.get_outputs()[0].name
+        actual_pred = sess.run([output_name], {input_name: my_pipeline.X_test})[0]
+
+        np.testing.assert_allclose(expected_pred, actual_pred, rtol=1e-3)
 
     def test_compare_models_joblib(self, tmp_path):
         # create dummy files
@@ -302,6 +342,36 @@ class TestPipelineCompare:
 
         np.testing.assert_allclose(expected_pred, actual_pred, rtol=1e-5)
 
+    def test_compare_models_joblib_non_sklearn_model(self, tmp_path):
+        # create dummy files
+        config_file = tmp_path / "config.yaml"
+        mat_file = tmp_path / "data.mat"
+        creat_dummy_config(config_file, mat_file)
+        create_dummy_mat_file(mat_file)
+
+        # test setup
+        my_pipeline = Pipeline(config_file)
+        my_pipeline.model_names = {
+            "SklearnGPRegressor": {
+                "num_inducing": 50,
+                "num_latents": 3,
+                "num_epochs": 1,
+            },
+        }  # choose one model to control the test
+        my_pipeline.setup(data="exp1")
+        model, scores = my_pipeline.compare_models()
+        best_model_name = scores.index[0]
+        fitted_model = model[best_model_name]
+        expected_pred = fitted_model.predict(my_pipeline.X_test)
+
+        # read the joblib model
+        import joblib
+
+        loaded_model = joblib.load("best_model.joblib")
+        actual_pred = loaded_model.predict(my_pipeline.X_test)
+
+        np.testing.assert_allclose(expected_pred, actual_pred, rtol=1e-5)
+
     def test_compare_models_cv(self, tmp_path):
         # create dummy files
         config_file = tmp_path / "config.yaml"
@@ -311,6 +381,18 @@ class TestPipelineCompare:
 
         # test setup
         my_pipeline = Pipeline(config_file)
+        # TODO: when SklearnGPRegressor is refactored, it can be added back
+        my_pipeline.model_names = {
+            "LinearRegression": {},
+            "RNNRegressor": {
+                "input_size": 3,
+                "hidden_size": 5,
+                "num_layers": 2,
+                "output_size": 1,
+                "max_epochs": 5,
+            },
+        }  # choose one model to control the test
+        my_pipeline.work_dir = tmp_path
         my_pipeline.work_dir = tmp_path
         my_pipeline.setup(data="exp1")
         models, scores = my_pipeline.compare_models(cross_validation=True)
@@ -318,8 +400,8 @@ class TestPipelineCompare:
         assert "r2" in scores
         assert "model_fit_time" in scores
         assert isinstance(models, dict)
-        assert "LeastAngleRegression" in models
         assert "LinearRegression" in models
+        assert "RNNRegressor" in models
         # check model is fitted
         assert check_is_fitted(models["LinearRegression"]) is None
         assert Path(tmp_path / "grid_scores.csv").exists()
