@@ -6,26 +6,20 @@ data:
     }
 ml_setup:
   targets: [
-      'pos_act6[0]',
-      'pos_act6[1]',
-      'pos_act6[2]',
-      'pos_act6[3]',
-      'pos_act6[4]',
-      'pos_act6[5]',
-      ]
-  predictors: [
       'force_tt_meas6[0]',
       'force_tt_meas6[1]',
       'force_tt_meas6[2]',
       'force_tt_meas6[3]',
       'force_tt_meas6[4]',
       'force_tt_meas6[5]',
-      'acc_tb_meas3[0]',
-      'acc_tb_meas3[1]',
-      'acc_tb_meas3[2]',
-      'acc_tt_meas3[0]',
-      'acc_tt_meas3[1]',
-      'acc_tt_meas3[2]',
+      ]
+  predictors: [
+      'pos_act6[0]',
+      'pos_act6[1]',
+      'pos_act6[2]',
+      'pos_act6[3]',
+      'pos_act6[4]',
+      'pos_act6[5]',
       'spd_rot_act',
       'wind_speed',
       ]
