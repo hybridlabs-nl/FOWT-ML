@@ -1,8 +1,11 @@
 <!-- (Customize these badges with your own links, and check https://shields.io/ or https://badgen.net/ to see which other badges are available.) -->
 
+<img align="right" width="90" alt="Logo" src="./docs/assets/fowt_ml_logo.png">
+
 [![github repo badge](https://img.shields.io/badge/github-repo-000.svg?logo=github&labelColor=gray&color=blue)](https://github.com/hybridlabs-nl/fowt-ml)
 [![RSD](https://img.shields.io/badge/rsd-fowt_ml-00a3e3.svg)](https://research-software-directory.org/projects/hybridlabs)
 [![Quality gate status](https://sonarcloud.io/api/project_badges/measure?project=hybridlabs-nl_FOWT-ML&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=hybridlabs-nl_FOWT-ML)
+
 
 # FOWT-ML
 

@@ -13,7 +13,7 @@ nav:
 theme:
   name: material
   custom_dir: docs/assets
-  # logo: assets/fowt_ml_logo.png
+  logo: assets/fowt_ml_logo.png
   features:
     - navigation.instant
     - navigation.tabs
