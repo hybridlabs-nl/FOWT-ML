@@ -3,8 +3,12 @@ repo_url: https://github.com/hybridlabs-nl/FOWT-ML
 repo_name: FOWT-ML
 
 nav:
-  - Introduction: intro.md
-  - Contributing guide: CONTRIBUTING.md
+  - Introduction: index.md
+  - Getting started:
+    - Installation: installation.md
+    - Example notebooks: examples.md
+  - How to contribute: CONTRIBUTING.md
+  - API Reference: api_reference.md
 
 theme:
   name: material
@@ -37,12 +41,42 @@ theme:
 plugins:
 - include-markdown
 - search
+- mkdocs-jupyter:
+      include_source: True
+- mkdocstrings:
+    handlers:
+      python:
+        paths: [src]
+        options:
+          docstring_style: google
+          docstring_options:
+            ignore_init_summary: true
+          merge_init_into_class: true
+          docstring_section_style: list
+          show_submodules: true
+          show_root_heading: true
+          show_source: true
+          heading_level: 3
+          relative_crossrefs: true
+          parameter_headings: false
+          separate_signature: true
+          show_bases: true
+          show_signature_annotations: true
+          show_symbol_type_heading: true
+          signature_crossrefs: true
+          summary: true
+          backlinks: tree
+          scoped_crossrefs: true
+          members_order: source
 
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
+  - pymdownx.arithmatex:
+      generic: true
   - pymdownx.superfences
   - pymdownx.details
+  - pymdownx.emoji
   - admonition
   - pymdownx.tabbed:
       alternate_style: true
