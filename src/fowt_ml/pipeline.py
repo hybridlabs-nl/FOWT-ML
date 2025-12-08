@@ -236,6 +236,7 @@ class Pipeline:
         """
         self.fitted_models = {}
         self.scores = {}
+        # TODO : parallelize this loop
         for model_name in self.model_names:
             fitted_model, scores = self._run_model(model_name, cross_validation)
             self.fitted_models[model_name] = fitted_model
