@@ -9,6 +9,7 @@ from fowt_ml.base import BaseModel
 class GenericRNNModule(torch.nn.Module):
     def __init__(self, rnn_model, input_size, hidden_size, output_size, num_layers=1):
         super().__init__()
+        self.norm = torch.nn.LayerNorm(input_size)
         self.rnn = rnn_model(
             input_size=input_size,
             hidden_size=hidden_size,
@@ -19,13 +20,14 @@ class GenericRNNModule(torch.nn.Module):
 
     def forward(self, x):
         """Forward pass of the RNN module."""
-        if x.dim() == 2:
-            x = x.unsqueeze(0)  # add batch dim
-        out, _ = self.rnn(x)
+        # x can be (batch, input_size) or (batch, seq_len, input_size)
 
-        out_fc = self.fc(out)  # regression on all time steps
-        if out_fc.shape[0] == 1:
-            out_fc = out_fc.squeeze(0)
+        if x.dim() == 2:
+            x = x.unsqueeze(1)  # add seq_len=1
+
+        out, _ = self.rnn(x)  # (batch, seq_len, hidden)
+        out = out[:, -1, :]  # take last time step (batch, hidden)
+        out_fc = self.fc(out)  # (batch, seq_len, output)
         return out_fc
 
 
@@ -48,7 +50,7 @@ def create_skorch_regressor(
         verbose=0,
     )
     params.update(kwargs)
-    return skorch.regressor.NeuralNetRegressor(**params)
+    return skorch.regressor.NeuralNetRegressor(**params, train_split=None)
 
 
 def RNNRegressor(**args):  # noqa: N802
@@ -75,3 +77,10 @@ class NeuralNetwork(BaseModel):
         "LSTMRegressor": LSTMRegressor,
         "GRURegressor": GRURegressor,
     }
+
+    RNN_LIKE_NAMES = {"RNNRegressor", "LSTMRegressor", "GRURegressor"}
+
+    @classmethod
+    def is_rnn_like(cls, model_name):
+        """Check if the model is RNN-like."""
+        return model_name in cls.RNN_LIKE_NAMES

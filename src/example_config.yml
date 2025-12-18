@@ -30,6 +30,7 @@ ml_setup:
   use_gpu: False
   scale_data: True
   train_test_split_kwargs: {"train_size": 0.75, "shuffle": True, "random_state": 42}
+  data_segmentation_kwargs: {"sequence_length": 1000}
   cross_validation_kwargs: {"cv": 3}
   model_names: {  # models that supports multi-output regression
       "ElasticNetRegression": {}, # Elastic Net

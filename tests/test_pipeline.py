@@ -1,6 +1,7 @@
 from pathlib import Path
 import numpy as np
 import pandas as pd
+import pytest
 from sklearn.utils.validation import check_is_fitted
 from fowt_ml.config import Config
 from fowt_ml.pipeline import Pipeline
@@ -171,6 +172,41 @@ class TestPipelineSetup:
         assert hasattr(my_pipeline, "Y_train")
         assert hasattr(my_pipeline, "Y_test")
         assert hasattr(my_pipeline, "model_instances")
+
+    def test_setup_segment_with_segments(self, tmp_path):
+        # create dummy files
+        config_file = tmp_path / "config.yaml"
+        mat_file = tmp_path / "data.mat"
+        creat_dummy_config(config_file, mat_file)
+        create_dummy_mat_file(mat_file)
+
+        # test setup
+        my_pipeline = Pipeline(config_file)
+        my_pipeline.data_segmentation_kwargs = {"sequence_length": 2}
+        my_pipeline.work_dir = tmp_path
+        my_pipeline.setup(data="exp1")
+        assert my_pipeline.X_train.ndim == 3
+        assert len(my_pipeline.X_train) == len(my_pipeline.Y_train)
+        assert my_pipeline.X_test.ndim == 2
+        assert len(my_pipeline.X_test) == len(my_pipeline.Y_test)
+
+    def test_setup_segment_with_segments_no_rnn(self, tmp_path):
+        # create dummy files
+        config_file = tmp_path / "config.yaml"
+        mat_file = tmp_path / "data.mat"
+        creat_dummy_config(config_file, mat_file)
+        create_dummy_mat_file(mat_file)
+
+        # test setup
+        my_pipeline = Pipeline(config_file)
+        my_pipeline.data_segmentation_kwargs = {"sequence_length": 2}
+        my_pipeline.model_names = {"LinearRegression": {}}
+        my_pipeline.work_dir = tmp_path
+        with pytest.raises(
+            ValueError,
+            match="Timeseries segmentation is only applicable for RNN models.",
+        ):
+            my_pipeline.setup(data="exp1")
 
 
 class TestPipelineCompare:

@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 import sklearn.neural_network as nn
 import skorch
@@ -13,6 +14,10 @@ def simple_dataset():
     x_test = [[7, 8], [9, 10], [11, 12]]
     y_train = [1, 2, 3]
     y_test = [4, 5, 6]
+    x_train, x_test, y_train, y_test = [
+        np.asanyarray(arr, dtype=np.float32)
+        for arr in (x_train, x_test, y_train, y_test)
+    ]
     return x_train, x_test, y_train, y_test
 
 

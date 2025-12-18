@@ -11,6 +11,7 @@ from skl2onnx.common.data_types import FloatTensorType
 from sklearn.model_selection import train_test_split
 from fowt_ml.config import Config
 from fowt_ml.datasets import check_data
+from fowt_ml.datasets import create_segments
 from fowt_ml.datasets import get_data
 from fowt_ml.ensemble import EnsembleModel
 from fowt_ml.gaussian_process import SparseGaussianModel
@@ -19,6 +20,7 @@ from fowt_ml.neural_network import NeuralNetwork
 from fowt_ml.xgboost import XGBoost
 
 logger = logging.getLogger(__name__)
+DTYPE = np.float32
 
 
 class Pipeline:
@@ -41,6 +43,7 @@ class Pipeline:
         self.train_test_split_kwargs = config["ml_setup"]["train_test_split_kwargs"]
         self.cross_validation_kwargs = config["ml_setup"]["cross_validation_kwargs"]
         self.scale_data = config["ml_setup"]["scale_data"]
+        self.data_segmentation_kwargs = config["ml_setup"]["data_segmentation_kwargs"]
 
         self.work_dir = Path(config["session_setup"]["work_dir"])
 
@@ -130,12 +133,31 @@ class Pipeline:
         self.Y_data = data.loc[:, self.target_labels]
 
         # convert to numpy arrays for consistency between libraries
-        self.X_data = np.asarray(self.X_data, dtype=np.float32)
-        self.Y_data = np.asarray(self.Y_data, dtype=np.float32)
+        self.X_data = np.asarray(self.X_data, dtype=DTYPE)
+        self.Y_data = np.asarray(self.Y_data, dtype=DTYPE)
 
         self.X_train, self.X_test, self.Y_train, self.Y_test = self.train_test_split(
             **self.train_test_split_kwargs
         )
+
+        if self.data_segmentation_kwargs.get("sequence_length"):
+            if any(
+                NeuralNetwork.is_rnn_like(model_name)
+                for model_name in self.model_names.keys()
+            ):
+                sequence_length = self.data_segmentation_kwargs["sequence_length"]
+
+                # we loop to avoid data leak between train and test sets
+                self.X_train = create_segments(self.X_train, sequence_length)
+
+                # align Y data
+                self.Y_train = self.Y_train[sequence_length - 1 :]
+
+                self._rnn_model_exist = True
+            else:
+                raise ValueError(
+                    "Timeseries segmentation is only applicable for RNN models."
+                )
 
         # get the models
         self.model_instances = self.get_models()
@@ -156,7 +178,8 @@ class Pipeline:
         """
         model = self.model_instances[model_name]
 
-        if self.scale_data:
+        # rnn model uses scaled data internally because of 3d data
+        if self.scale_data and not NeuralNetwork.is_rnn_like(model_name):
             model.use_scaled_data()
 
         if cross_validation:
@@ -236,6 +259,7 @@ class Pipeline:
         """
         self.fitted_models = {}
         self.scores = {}
+        # TODO : parallelize this loop
         for model_name in self.model_names:
             fitted_model, scores = self._run_model(model_name, cross_validation)
             self.fitted_models[model_name] = fitted_model
