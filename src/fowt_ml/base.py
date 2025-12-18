@@ -10,7 +10,7 @@ from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator
 from sklearn.compose import TransformedTargetRegressor
 from sklearn.metrics import check_scoring
-from sklearn.model_selection import cross_validate
+from sklearn.model_selection import cross_validate as sklearn_cross_validate
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
@@ -69,6 +69,10 @@ class BaseModel:
         include_fit_time = "model_fit_time" in scoring_list
         include_predict_time = "model_predict_time" in scoring_list
 
+        # allowed_3d=False because scoring functions expect 2D arrays
+        x_test = _check_arry(x_test, allowed_3d=False)
+        y_test = _check_arry(y_test, allowed_3d=False)
+
         # Remove custom timing keys before passing to sklearn scorer
         scoring_list = [
             s for s in scoring_list if s not in {"model_fit_time", "model_predict_time"}
@@ -94,6 +98,7 @@ class BaseModel:
         x_train: ArrayLike,
         y_train: ArrayLike,
         scoring: str | Iterable,
+        cv: int = 5,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Perform cross-validation on the model.
@@ -102,6 +107,7 @@ class BaseModel:
             x_train (ArrayLike): features data
             y_train (ArrayLike): target data
             scoring (str | Iterable, optional): scoring method(s) to use.
+            cv (int, optional): number of cross-validation folds. Default is 5.
             **kwargs: additional keyword arguments to pass to `cross_validate`
 
         Returns:
@@ -121,10 +127,16 @@ class BaseModel:
         if include_predict_time:
             scorers["model_predict_time"] = _measure_predict_latency
 
-        cv_results = cross_validate(
+        # cross_validate does the fitting internally,
+        # so it accepts 3D arrays
+        x_train = _check_arry(x_train, allowed_3d=True)
+        y_train = _check_arry(y_train, allowed_3d=True)
+
+        cv_results = sklearn_cross_validate(
             self.estimator,
             x_train,
             y_train,
+            cv=cv,
             scoring=scorers or None,
             return_train_score=False,
             **kwargs,
@@ -184,3 +196,17 @@ def _measure_predict_latency(estimator, x_test, y=None) -> float:
     end = time.perf_counter()
     single_sample_latency = end - start
     return np.round(np.mean([batch_latency_per_sample, single_sample_latency]), 3)
+
+
+def _check_arry(arr: ArrayLike, allowed_3d: bool) -> ArrayLike:
+    """Check if the input is a valid array-like structure."""
+    if not isinstance(arr, (pd.DataFrame | pd.Series | np.ndarray | torch.Tensor)):
+        raise TypeError(
+            "Input must be a pandas DataFrame/Series, a NumPy array or torch Tensor."
+        )
+    arr = np.asarray(arr)
+
+    if not allowed_3d and arr.ndim == 3:
+        raise ValueError("3D arrays are not allowed for this operation.")
+
+    return arr

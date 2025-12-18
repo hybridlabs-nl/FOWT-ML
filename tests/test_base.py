@@ -6,6 +6,8 @@ from sklearn.metrics import check_scoring
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from fowt_ml.base import BaseModel
+from fowt_ml.datasets import create_segments
+from fowt_ml.neural_network import NeuralNetwork
 
 
 class DummyModel(BaseModel):
@@ -62,6 +64,31 @@ class TestCalculateScore:
         assert actual_scores["model_fit_time"] >= 0
         assert actual_scores["model_predict_time"] >= 0
 
+    def test_calculate_score_3d(self):
+        dtype = np.float32
+        x_train = np.asarray([[1], [2], [3], [4], [5]], dtype=dtype)
+        y_train = np.asarray([2, 3, 4, 5, 6], dtype=dtype)
+        x_test = np.asarray([[6], [7], [8]], dtype=dtype)
+        y_test = np.asarray([7, 8, 9], dtype=dtype)
+        params = {
+            "input_size": 1,
+            "hidden_size": 6,
+            "output_size": 1,
+            "num_layers": 2,
+        }
+
+        # reshape data to 3d (samples, 1, features)
+        x_train = create_segments(x_train, 2)
+
+        # reshape targets to 2d (samples, 1)
+        y_train = y_train.reshape((y_train.shape[0], 1))
+        y_train = y_train[2 - 1 :]  # adjust for sequence length
+
+        model = NeuralNetwork("RNNRegressor", **params)
+        model.estimator.fit(x_train, y_train)
+        actual_scores = model.calculate_score(x_train, x_test, y_train, y_test, ["r2"])
+        assert "r2" in actual_scores
+
 
 class TestCrossValidate:
     def test_cross_validate_default(self):
@@ -87,6 +114,30 @@ class TestCrossValidate:
         assert "model_fit_time" in cv_results
         assert "model_predict_time" in cv_results
         assert len(cv_results["r2"]) == 3
+
+    def test_cross_validate_3d(self):
+        x_train = np.asarray([[1], [2], [3], [4], [5], [6], [7], [8]], dtype=np.float32)
+        y_train = np.asarray([2, 3, 4, 5, 6, 7, 8, 9], dtype=np.float32)
+        params = {
+            "input_size": 1,
+            "hidden_size": 6,
+            "output_size": 1,
+            "num_layers": 1,
+        }
+
+        # reshape data to 3d (samples, 2, features)
+        x_train = create_segments(x_train, 2)
+
+        # reshape targets to 2d (samples, 1)
+        y_train = y_train.reshape((y_train.shape[0], 1))
+        y_train = y_train[2 - 1 :]  # adjust for sequence length
+
+        model = NeuralNetwork("RNNRegressor", **params)
+        metrics = ["r2"]
+        cv_results = model.cross_validate(x_train, y_train, scoring=metrics, cv=2)
+        assert "test_r2" not in cv_results
+        assert "r2" in cv_results
+        assert len(cv_results["r2"]) == 2
 
 
 class TestUseScaledData:
@@ -139,6 +190,9 @@ class TestUseScaledData:
         )
         y_test = y_test * 1000
 
+        x_train = np.asarray(x_train, dtype=np.float64)
+        y_train = np.asarray(y_train, dtype=np.float64)
+
         model.estimator.fit(x_train, y_train)
         metrics = ["r2", "neg_mean_squared_error"]
         expected_scores = model.calculate_score(
@@ -169,6 +223,9 @@ class TestUseScaledData:
             n_samples=200, n_features=3, noise=10, random_state=42
         )
         y_train = y_train * 1000  # pretend target is in dollars
+
+        x_train = np.asarray(x_train, dtype=np.float64)
+        y_train = np.asarray(y_train, dtype=np.float64)
 
         model.estimator.fit(x_train, y_train)
         metrics = ["r2", "neg_mean_squared_error"]

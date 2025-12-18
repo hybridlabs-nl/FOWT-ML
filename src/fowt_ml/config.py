@@ -77,6 +77,7 @@ class MLConfig(BaseConfig):
         "random_state": 42,
         "shuffle": True,
     }
+    data_segmentation_kwargs: dict[str, Any] = {}
     cross_validation_kwargs: dict[str, Any] = {}
     model_names: dict[str, dict[str, Any]]
     metric_names: list[str]
@@ -132,7 +133,7 @@ class MLConfig(BaseConfig):
             # Get the constructor signature for that model class
             model_class = estimator_map[model_name]
             allowed_kwargs = get_allowed_kwargs(model_class)
-            if model_name in {"RNNRegressor", "LSTMRegressor", "GRURegressor"}:
+            if NeuralNetwork.is_rnn_like(model_name):
                 model_class = create_skorch_regressor
                 allowed_kwargs = get_allowed_kwargs(model_class)
                 model_class = skorch.net.NeuralNet

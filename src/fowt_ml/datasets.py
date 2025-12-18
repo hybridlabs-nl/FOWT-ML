@@ -123,3 +123,16 @@ def fix_column_names(df: pd.DataFrame) -> pd.DataFrame:
         inplace=True,
     )
     return df
+
+
+def create_segments(arr: np.array, seq_len: int) -> np.array:
+    """Creates segments of the given sequence length from the array."""
+    # arr: [samples, features]
+    num_samples, num_features = arr.shape
+    num_segments = num_samples - seq_len + 1
+    # Use stride tricks for efficiency
+    shape = (num_segments, seq_len, num_features)
+    strides = (arr.strides[0], arr.strides[0], arr.strides[1])
+    # Return a view of the array with the new shape and strides, if you need a
+    # copy, use .copy() on the result
+    return np.lib.stride_tricks.as_strided(arr, shape=shape, strides=strides)
