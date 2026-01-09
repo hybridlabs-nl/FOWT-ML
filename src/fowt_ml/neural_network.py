@@ -25,6 +25,7 @@ class GenericRNNModule(torch.nn.Module):
         if x.dim() == 2:
             x = x.unsqueeze(1)  # add seq_len=1
 
+        x = self.norm(x)
         out, _ = self.rnn(x)  # (batch, seq_len, hidden)
         out = out[:, -1, :]  # take last time step (batch, hidden)
         out_fc = self.fc(out)  # (batch, seq_len, output)
