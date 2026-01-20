@@ -178,9 +178,12 @@ class Pipeline:
         """
         model = self.model_instances[model_name]
 
-        # rnn model uses scaled data internally because of 3d data
-        if self.scale_data and not NeuralNetwork.is_rnn_like(model_name):
-            model.use_scaled_data()
+        # rnn model uses 3d scaled data
+        if self.scale_data:
+            if NeuralNetwork.is_rnn_like(model_name):
+                model.use_scaled_data(rnn_like=True)
+            else:
+                model.use_scaled_data()
 
         if cross_validation:
             all_scores = model.cross_validate(
