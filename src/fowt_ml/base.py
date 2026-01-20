@@ -15,6 +15,42 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 
+class TimeSeriesStandardScaler(StandardScaler):
+    """Standardize 3D arrays shaped (n_samples, seq_len, n_features).
+
+    It computes mean/std per feature across all timesteps, then reshape back.
+    """
+
+    def fit(self, x, y=None):
+        """Fit the scaler on 2D array."""
+        x2d = self._to_2d(x)
+        return super().fit(x2d, y)
+
+    def transform(self, x):
+        """Transform the 3D array."""
+        orig_shape = x.shape
+        x2d = self._to_2d(x)
+        x2d_scaled = super().transform(x2d)
+        return x2d_scaled.reshape(orig_shape)
+
+    def inverse_transform(self, x):
+        """Inverse transform the 3D array."""
+        orig_shape = x.shape
+        x2d = self._to_2d(x)
+        x2d_inv = super().inverse_transform(x2d)
+        return x2d_inv.reshape(orig_shape)
+
+    @staticmethod
+    def _to_2d(x):
+        x = np.asarray(x)
+        if x.ndim == 3:
+            n, t, f = x.shape
+            return x.reshape(n * t, f)
+        if x.ndim == 2:
+            return x
+        raise ValueError(f"Expected 2D or 3D array, got shape {x.shape}")
+
+
 class BaseModel:
     """Base class for all models."""
 
@@ -151,17 +187,21 @@ class BaseModel:
 
         return results
 
-    def use_scaled_data(self):
+    def use_scaled_data(self, rnn_like=False):
         """Wrap the estimator to use scaled data for both X and y."""
         if isinstance(self.estimator, TransformedTargetRegressor):
             return self  # already wrapped
 
+        if rnn_like:
+            scaler = TimeSeriesStandardScaler()
+        else:
+            scaler = StandardScaler()
         # Pipeline for input scaling + model
-        regressor = Pipeline([("scaler", StandardScaler()), ("model", self.estimator)])
+        regressor = Pipeline([("scaler", scaler), ("model", self.estimator)])
 
         # Wrap with TransformedTargetRegressor for y scaling
         self.estimator = TransformedTargetRegressor(
-            regressor=regressor, transformer=StandardScaler()
+            regressor=regressor, transformer=scaler
         )
         return self
 
