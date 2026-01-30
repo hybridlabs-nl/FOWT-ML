@@ -1,5 +1,6 @@
 """This is the base class for all models in the fowt_ml package."""
 
+import logging
 import time
 from collections.abc import Iterable
 from typing import Any
@@ -9,10 +10,14 @@ import torch
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator
 from sklearn.compose import TransformedTargetRegressor
+from sklearn.exceptions import NotFittedError
 from sklearn.metrics import check_scoring
 from sklearn.model_selection import cross_validate as sklearn_cross_validate
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
+from sklearn.utils.validation import check_is_fitted as check_is_fitted
+
+logger = logging.getLogger(__name__)
 
 
 class TimeSeriesStandardScaler(StandardScaler):
@@ -98,22 +103,34 @@ class BaseModel:
         Returns:
             float | dict[str, float]: the calculated score(s)
         """  # noqa: E501
-        model_fit_time = _measure_fit_time(self.estimator, x_train, y_train)
+        # allowed_3d=True for RNN-like models
+        x_test = _check_arry(x_test, allowed_3d=True)
+
+        # allowed_3d=False because scoring functions expect 2D arrays
+        y_test = _check_arry(y_test, allowed_3d=False)
 
         # prepare scoring list and check if "model_fit_time" is included
         scoring_list = [scoring] if isinstance(scoring, str) else list(scoring)
         include_fit_time = "model_fit_time" in scoring_list
         include_predict_time = "model_predict_time" in scoring_list
 
-        # allowed_3d=False because scoring functions expect 2D arrays
-        x_test = _check_arry(x_test, allowed_3d=False)
-        y_test = _check_arry(y_test, allowed_3d=False)
+        # calculate model fit time
+        if is_fitted(self.estimator):
+            if include_fit_time:
+                logger.warning(
+                    "The estimator is already fitted. "
+                    "The reported 'model_fit_time' will be 0.0."
+                )
+                model_fit_time = 0.0
+        else:
+            model_fit_time = _measure_fit_time(self.estimator, x_train, y_train)
 
         # Remove custom timing keys before passing to sklearn scorer
         scoring_list = [
             s for s in scoring_list if s not in {"model_fit_time", "model_predict_time"}
         ]
 
+        # estimator is already fitted in _measure_fit_time
         if scoring_list:
             scorer = check_scoring(self.estimator, scoring=scoring_list)
             scores = scorer(self.estimator, x_test, y_test)
@@ -187,21 +204,20 @@ class BaseModel:
 
         return results
 
-    def use_scaled_data(self, rnn_like=False):
+    def use_scaled_data(self, data_3d=False):
         """Wrap the estimator to use scaled data for both X and y."""
         if isinstance(self.estimator, TransformedTargetRegressor):
             return self  # already wrapped
 
-        if rnn_like:
-            scaler = TimeSeriesStandardScaler()
-        else:
-            scaler = StandardScaler()
+        x_scaler = TimeSeriesStandardScaler() if data_3d else StandardScaler()
+        y_scaler = StandardScaler()
+
         # Pipeline for input scaling + model
-        regressor = Pipeline([("scaler", scaler), ("model", self.estimator)])
+        regressor = Pipeline([("scaler", x_scaler), ("model", self.estimator)])
 
         # Wrap with TransformedTargetRegressor for y scaling
         self.estimator = TransformedTargetRegressor(
-            regressor=regressor, transformer=scaler
+            regressor=regressor, transformer=y_scaler
         )
         return self
 
@@ -250,3 +266,21 @@ def _check_arry(arr: ArrayLike, allowed_3d: bool) -> ArrayLike:
         raise ValueError("3D arrays are not allowed for this operation.")
 
     return arr
+
+
+def is_fitted(estimator) -> bool:
+    """Check if a estimator is fitted.
+
+    Works for sklearn and skorch estimators.
+    Returns True if fitted, False otherwise.
+    """
+    # First, handle skorch estimators
+    if hasattr(estimator, "initialized_"):
+        return estimator.initialized_
+
+    # Fall back to sklearn's check_is_fitted
+    try:
+        check_is_fitted(estimator)
+        return True
+    except NotFittedError:
+        return False
