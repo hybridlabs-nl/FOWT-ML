@@ -5,6 +5,7 @@ from fowt_ml.datasets import check_data
 from fowt_ml.datasets import convert_mat_to_df
 from fowt_ml.datasets import fix_column_names
 from fowt_ml.datasets import get_data
+from fowt_ml.datasets import create_segments
 from . import create_dummy_mat_file
 
 logger = logging.getLogger(__name__)
@@ -176,3 +177,23 @@ def test_fix_column_names(tmp_path):
     assert "pos_act6[0]" not in df.columns
     assert "pos_act6_0" in df.columns
     assert isinstance(df, type(df))
+
+
+def test_create_segments(tmp_path):
+    mat_file = tmp_path / "test_data.mat"
+    create_dummy_mat_file(mat_file)
+
+    data_id = "exp1"
+    config = {
+        data_id: {
+            "path_file": str(mat_file),
+            "description": "Test data",
+        }
+    }
+
+    df = get_data(data_id, config)
+    df = fix_column_names(df)
+    train_data = np.asarray(df)
+    segment_length = 10
+    segments = create_segments(train_data, segment_length)
+    assert segments.shape == (41, 10, df.shape[1])
