@@ -136,10 +136,23 @@ class Pipeline:
         self.X_data = np.asarray(self.X_data, dtype=DTYPE)
         self.Y_data = np.asarray(self.Y_data, dtype=DTYPE)
 
+        # check X_data and Y_data are 2d
+        if self.X_data.ndim != 2:
+            raise ValueError(
+                f"X_data should be 2d array. Found {self.X_data.ndim}d array."
+            )
+        if self.Y_data.ndim != 2:
+            raise ValueError(
+                f"Y_data should be 2d array. Found {self.Y_data.ndim}d array."
+            )
+
+        # split the data to train and test sets
         self.X_train, self.X_test, self.Y_train, self.Y_test = self.train_test_split(
             **self.train_test_split_kwargs
         )
 
+        # segment the data if required
+        self.data_is_segmented = False
         if self.data_segmentation_kwargs.get("sequence_length"):
             if any(
                 NeuralNetwork.is_rnn_like(model_name)
@@ -155,6 +168,7 @@ class Pipeline:
                 self.Y_train_segments = self.Y_train[sequence_length - 1 :]
                 self.Y_test_segments = self.Y_test[sequence_length - 1 :]
 
+                self.data_is_segmented = True
             else:
                 raise ValueError(
                     "Timeseries segmentation is only applicable for RNN models."
@@ -180,19 +194,21 @@ class Pipeline:
         model = self.model_instances[model_name]
 
         # rnn model uses 3d scaled data
+        data_is_3d = False
+        if NeuralNetwork.is_rnn_like(model_name) and self.data_is_segmented:
+            X_train = self.X_train_segments  # noqa N806
+            Y_train = self.Y_train_segments  # noqa N806
+            X_test = self.X_test_segments  # noqa N806
+            Y_test = self.Y_test_segments  # noqa N806
+            data_is_3d = True
+        else:
+            X_train = self.X_train  # noqa N806
+            Y_train = self.Y_train  # noqa N806
+            X_test = self.X_test  # noqa N806
+            Y_test = self.Y_test  # noqa N806
+
         if self.scale_data:
-            if NeuralNetwork.is_rnn_like(model_name):
-                X_train = self.X_train_segments  # noqa N806
-                Y_train = self.Y_train_segments  # noqa N806
-                X_test = self.X_test_segments  # noqa N806
-                Y_test = self.Y_test_segments  # noqa N806
-                model.use_scaled_data(data_3d=True)
-            else:
-                X_train = self.X_train  # noqa N806
-                Y_train = self.Y_train  # noqa N806
-                X_test = self.X_test  # noqa N806
-                Y_test = self.Y_test  # noqa N806
-                model.use_scaled_data()
+            model.use_scaled_data(data_3d=data_is_3d)
 
         if cross_validation:
             all_scores = model.cross_validate(
@@ -217,7 +233,7 @@ class Pipeline:
                 with mlflow.start_run(experiment_id=self.experiment_id):
                     mlflow.log_param("model_name", model_name)
                     mlflow.log_metrics(self.scores[model_name])
-                    if NeuralNetwork.is_rnn_like(model_name):
+                    if NeuralNetwork.is_rnn_like(model_name) and self.data_is_segmented:
                         X_train = self.X_train_segments  # noqa N806
                     else:
                         X_train = self.X_train  # noqa N806

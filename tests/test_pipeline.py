@@ -185,10 +185,10 @@ class TestPipelineSetup:
         my_pipeline.data_segmentation_kwargs = {"sequence_length": 2}
         my_pipeline.work_dir = tmp_path
         my_pipeline.setup(data="exp1")
-        assert my_pipeline.X_train.ndim == 3
-        assert len(my_pipeline.X_train) == len(my_pipeline.Y_train)
-        assert my_pipeline.X_test.ndim == 2
-        assert len(my_pipeline.X_test) == len(my_pipeline.Y_test)
+        assert my_pipeline.X_train_segments.ndim == 3
+        assert len(my_pipeline.X_train_segments) == len(my_pipeline.Y_train_segments)
+        assert my_pipeline.X_test_segments.ndim == 3
+        assert len(my_pipeline.X_test_segments) == len(my_pipeline.Y_test_segments)
 
     def test_setup_segment_with_segments_no_rnn(self, tmp_path):
         # create dummy files
