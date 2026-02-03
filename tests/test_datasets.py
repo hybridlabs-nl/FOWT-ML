@@ -3,9 +3,9 @@ import numpy as np
 import pytest
 from fowt_ml.datasets import check_data
 from fowt_ml.datasets import convert_mat_to_df
+from fowt_ml.datasets import create_segments
 from fowt_ml.datasets import fix_column_names
 from fowt_ml.datasets import get_data
-from fowt_ml.datasets import create_segments
 from . import create_dummy_mat_file
 
 logger = logging.getLogger(__name__)

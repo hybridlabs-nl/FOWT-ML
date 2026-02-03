@@ -182,16 +182,16 @@ class Pipeline:
         # rnn model uses 3d scaled data
         if self.scale_data:
             if NeuralNetwork.is_rnn_like(model_name):
-                X_train = self.X_train_segments
-                Y_train = self.Y_train_segments
-                X_test = self.X_test_segments
-                Y_test = self.Y_test_segments
+                X_train = self.X_train_segments  # noqa N806
+                Y_train = self.Y_train_segments  # noqa N806
+                X_test = self.X_test_segments  # noqa N806
+                Y_test = self.Y_test_segments  # noqa N806
                 model.use_scaled_data(data_3d=True)
             else:
-                X_train = self.X_train
-                Y_train = self.Y_train
-                X_test = self.X_test
-                Y_test = self.Y_test
+                X_train = self.X_train  # noqa N806
+                Y_train = self.Y_train  # noqa N806
+                X_test = self.X_test  # noqa N806
+                Y_test = self.Y_test  # noqa N806
                 model.use_scaled_data()
 
         if cross_validation:
@@ -218,9 +218,9 @@ class Pipeline:
                     mlflow.log_param("model_name", model_name)
                     mlflow.log_metrics(self.scores[model_name])
                     if NeuralNetwork.is_rnn_like(model_name):
-                        X_train = self.X_train_segments
+                        X_train = self.X_train_segments  # noqa N806
                     else:
-                        X_train = self.X_train
+                        X_train = self.X_train  # noqa N806
                     input_example = X_train[:1]  # small slice of training data
                     model = self.fitted_models[model_name]
                     signature = mlflow.models.infer_signature(

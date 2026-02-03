@@ -357,7 +357,10 @@ class TestUseScaledData:
         model = NeuralNetwork("RNNRegressor", **params)
         model.use_scaled_data(data_3d=True)
         actual_scores = model.cross_validate(
-            x_train, y_train, ["neg_mean_absolute_error"], cv=2,
+            x_train,
+            y_train,
+            ["neg_mean_absolute_error"],
+            cv=2,
         )
         assert "neg_mean_absolute_error" in actual_scores
 

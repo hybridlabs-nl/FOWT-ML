@@ -185,11 +185,8 @@ class BaseModel:
         x_train = _check_arry(x_train, allowed_3d=True)
         y_train = _check_arry(y_train, allowed_3d=True)
 
-
         if is_fitted(self.estimator):
-            logger.warning(
-                "The estimator is already fitted."
-            )
+            logger.warning("The estimator is already fitted.")
 
         cv_results = sklearn_cross_validate(
             self.estimator,
