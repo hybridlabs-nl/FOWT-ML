@@ -3,9 +3,12 @@ from sklearn.compose import TransformedTargetRegressor
 from sklearn.datasets import make_regression
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import check_scoring
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import r2_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from fowt_ml.base import BaseModel
+from fowt_ml.base import TimeSeriesStandardScaler
 from fowt_ml.datasets import create_segments
 from fowt_ml.neural_network import NeuralNetwork
 
@@ -66,23 +69,24 @@ class TestCalculateScore:
 
     def test_calculate_score_3d(self):
         dtype = np.float32
-        x_train = np.asarray([[1], [2], [3], [4], [5]], dtype=dtype)
-        y_train = np.asarray([2, 3, 4, 5, 6], dtype=dtype)
-        x_test = np.asarray([[6], [7], [8]], dtype=dtype)
-        y_test = np.asarray([7, 8, 9], dtype=dtype)
+        x_train = np.asarray([[1, 2], [2, 3], [3, 4], [4, 5], [5, 6]], dtype=dtype)
+        y_train = np.asarray([[2, 2], [3, 3], [4, 4], [5, 5], [6, 6]], dtype=dtype)
+        x_test = np.asarray([[6, 7], [7, 8], [8, 9]], dtype=dtype)
+        y_test = np.asarray([[7, 7], [8, 8], [9, 9]], dtype=dtype)
         params = {
-            "input_size": 1,
+            "input_size": 2,
             "hidden_size": 6,
-            "output_size": 1,
+            "output_size": 2,
             "num_layers": 2,
         }
 
         # reshape data to 3d (samples, 1, features)
         x_train = create_segments(x_train, 2)
+        x_test = create_segments(x_test, 2)
 
-        # reshape targets to 2d (samples, 1)
-        y_train = y_train.reshape((y_train.shape[0], 1))
+        # reshape targets to 2d (samples, 2)
         y_train = y_train[2 - 1 :]  # adjust for sequence length
+        y_test = y_test[2 - 1 :]
 
         model = NeuralNetwork("RNNRegressor", **params)
         model.estimator.fit(x_train, y_train)
@@ -116,20 +120,20 @@ class TestCrossValidate:
         assert len(cv_results["r2"]) == 3
 
     def test_cross_validate_3d(self):
-        x_train = np.asarray([[1], [2], [3], [4], [5], [6], [7], [8]], dtype=np.float32)
-        y_train = np.asarray([2, 3, 4, 5, 6, 7, 8, 9], dtype=np.float32)
+        dtype = np.float32
+        x_train = np.asarray([[1, 2], [2, 3], [3, 4], [4, 5], [5, 6]], dtype=dtype)
+        y_train = np.asarray([[2, 2], [3, 3], [4, 4], [5, 5], [6, 6]], dtype=dtype)
         params = {
-            "input_size": 1,
+            "input_size": 2,
             "hidden_size": 6,
-            "output_size": 1,
+            "output_size": 2,
             "num_layers": 1,
         }
 
         # reshape data to 3d (samples, 2, features)
         x_train = create_segments(x_train, 2)
 
-        # reshape targets to 2d (samples, 1)
-        y_train = y_train.reshape((y_train.shape[0], 1))
+        # reshape targets to 2d (samples, 2)
         y_train = y_train[2 - 1 :]  # adjust for sequence length
 
         model = NeuralNetwork("RNNRegressor", **params)
@@ -168,8 +172,6 @@ class TestUseScaledData:
         )
 
         # Check prediction accuracy
-        from sklearn.metrics import r2_score
-
         r2 = r2_score(y_train, y_predict)
         np.testing.assert_almost_equal(
             r2,
@@ -179,8 +181,6 @@ class TestUseScaledData:
         )
 
     def test_use_scaled_data_calculate_score(self):
-        model = DummyModel("LinearRegression")
-
         x_train, y_train = make_regression(
             n_samples=200, n_features=3, noise=10, random_state=42
         )
@@ -192,7 +192,10 @@ class TestUseScaledData:
 
         x_train = np.asarray(x_train, dtype=np.float64)
         y_train = np.asarray(y_train, dtype=np.float64)
+        x_test = np.asarray(x_test, dtype=np.float64)
+        y_test = np.asarray(y_test, dtype=np.float64)
 
+        model = DummyModel("LinearRegression")
         model.estimator.fit(x_train, y_train)
         metrics = ["r2", "neg_mean_squared_error"]
         expected_scores = model.calculate_score(
@@ -246,4 +249,143 @@ class TestUseScaledData:
             expected_scores["neg_mean_squared_error"],
             decimal=2,
             err_msg="Neg MSE scores should match after scaling",
+        )
+
+    def test_use_scaled_data_rnn(self):
+        x_train, y_train = make_regression(
+            n_samples=200, n_features=3, noise=10, random_state=42, n_targets=2
+        )
+        y_train = y_train * 1000  # pretend target is in dollars
+        x_test, y_test = make_regression(
+            n_samples=50, n_features=3, noise=10, random_state=24, n_targets=2
+        )
+        y_test = y_test * 1000
+        x_train = np.asarray(x_train, dtype=np.float32)
+        y_train = np.asarray(y_train, dtype=np.float32)
+        x_test = np.asarray(x_test, dtype=np.float32)
+        y_test = np.asarray(y_test, dtype=np.float32)
+
+        params = {
+            "input_size": 3,
+            "hidden_size": 6,
+            "output_size": 2,
+            "num_layers": 2,
+        }
+
+        model = NeuralNetwork("RNNRegressor", **params)
+        model.use_scaled_data()
+        actual_scores = model.calculate_score(
+            x_train, x_test, y_train, y_test, ["neg_mean_absolute_error"]
+        )
+
+        y_pred = model.estimator.predict(x_test)
+        expected_neg_mae = -mean_absolute_error(
+            y_test, y_pred, multioutput="uniform_average"
+        )
+        np.testing.assert_almost_equal(
+            actual_scores["neg_mean_absolute_error"],
+            expected_neg_mae,
+            decimal=5,
+            err_msg="Neg MAE scores should match after scaling",
+        )
+        assert y_pred.shape == y_test.shape
+        assert "neg_mean_absolute_error" in actual_scores
+
+    def test_use_scaled_data_rnn_with_segments(self):
+        dtype = np.float32
+        x_train = np.asarray([[1, 2], [2, 3], [3, 4], [4, 5], [5, 6]], dtype=dtype)
+        y_train = np.asarray([[2, 2], [3, 3], [4, 4], [5, 5], [6, 6]], dtype=dtype)
+        x_test = np.asarray([[6, 7], [7, 8], [8, 9]], dtype=dtype)
+        y_test = np.asarray([[7, 7], [8, 8], [9, 9]], dtype=dtype)
+        params = {
+            "input_size": 2,
+            "hidden_size": 6,
+            "output_size": 2,
+            "num_layers": 2,
+        }
+
+        # reshape data to 3d (samples, 3, features)
+        seq_len = 3
+        x_train = create_segments(x_train, seq_len)
+        x_test = create_segments(x_test, seq_len)
+
+        # reshape targets to 2d (samples, 2)
+        y_train = y_train[seq_len - 1 :]  # adjust for sequence length
+        y_test = y_test[seq_len - 1 :]
+
+        model = NeuralNetwork("RNNRegressor", **params)
+        model.use_scaled_data(data_3d=True)
+        actual_scores = model.calculate_score(
+            x_train, x_test, y_train, y_test, ["neg_mean_absolute_error"]
+        )
+
+        y_pred = model.estimator.predict(x_test)
+        expected_neg_mae = -mean_absolute_error(
+            y_test, y_pred, multioutput="uniform_average"
+        )
+        np.testing.assert_almost_equal(
+            actual_scores["neg_mean_absolute_error"],
+            expected_neg_mae,
+            decimal=5,
+            err_msg="Neg MAE scores should match after scaling",
+        )
+        assert y_pred.shape == y_test.shape
+        assert "neg_mean_absolute_error" in actual_scores
+
+    def test_use_scaled_data_rnn_with_segments_cv(self):
+        dtype = np.float32
+        x_train = np.asarray([[1, 2], [2, 3], [3, 4], [4, 5], [5, 6]], dtype=dtype)
+        y_train = np.asarray([[2, 2], [3, 3], [4, 4], [5, 5], [6, 6]], dtype=dtype)
+        x_test = np.asarray([[6, 7], [7, 8], [8, 9]], dtype=dtype)
+        y_test = np.asarray([[7, 7], [8, 8], [9, 9]], dtype=dtype)
+        params = {
+            "input_size": 2,
+            "hidden_size": 6,
+            "output_size": 2,
+            "num_layers": 2,
+        }
+
+        # reshape data to 3d (samples, 3, features)
+        seq_len = 3
+        x_train = create_segments(x_train, seq_len)
+        x_test = create_segments(x_test, seq_len)
+
+        # reshape targets to 2d (samples, 2)
+        y_train = y_train[seq_len - 1 :]  # adjust for sequence length
+        y_test = y_test[seq_len - 1 :]
+
+        model = NeuralNetwork("RNNRegressor", **params)
+        model.use_scaled_data(data_3d=True)
+        actual_scores = model.cross_validate(
+            x_train,
+            y_train,
+            ["neg_mean_absolute_error"],
+            cv=2,
+        )
+        assert "neg_mean_absolute_error" in actual_scores
+
+
+class TestTimeSeriesStandardScaler:
+    def test_timeseries_standard_scaler(self):
+        dtype = np.float32
+        x_train = np.asarray([[1], [2], [3], [4], [5], [6], [7], [8]], dtype=dtype)
+
+        scaler = TimeSeriesStandardScaler()
+        x_scaled = scaler.fit_transform(x_train)
+
+        # Check mean and std dev of scaled data
+        mean = np.mean(x_scaled, axis=(0, 1))
+        std = np.std(x_scaled, axis=(0, 1))
+
+        np.testing.assert_almost_equal(
+            mean,
+            0.0,
+            decimal=6,
+            err_msg="Mean of scaled data should be approximately 0",
+        )
+        np.testing.assert_almost_equal(
+            std,
+            1.0,
+            decimal=6,
+            err_msg="Std dev of scaled data should be approximately 1",
         )
