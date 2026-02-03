@@ -1,4 +1,5 @@
 from pathlib import Path
+import joblib
 import numpy as np
 import pandas as pd
 import pytest
@@ -247,6 +248,7 @@ class TestPipelineCompare:
 
         # test setup
         my_pipeline = Pipeline(config_file)
+        my_pipeline.work_dir = tmp_path
         my_pipeline.setup(data="exp1")
 
         _, scores = my_pipeline.compare_models(sort="model_fit_time")
@@ -266,6 +268,7 @@ class TestPipelineCompare:
 
         # test setup
         my_pipeline = Pipeline(config_file)
+        my_pipeline.work_dir = tmp_path
         my_pipeline.setup(data="exp1")
 
         _, scores = my_pipeline.compare_models(
@@ -289,6 +292,7 @@ class TestPipelineCompare:
 
         # test setup
         my_pipeline = Pipeline(config_file)
+        my_pipeline.work_dir = tmp_path
 
         # ONNX does not support TransformedTargetRegressor
         my_pipeline.scale_data = False
@@ -305,7 +309,7 @@ class TestPipelineCompare:
         # read the onnx model
         import onnxruntime as rt
 
-        sess = rt.InferenceSession("best_model.onnx")
+        sess = rt.InferenceSession(tmp_path / "best_model.onnx")
         input_name = sess.get_inputs()[0].name
         output_name = sess.get_outputs()[0].name
         actual_pred = sess.run([output_name], {input_name: my_pipeline.X_test})[0]
@@ -321,6 +325,7 @@ class TestPipelineCompare:
 
         # test setup
         my_pipeline = Pipeline(config_file)
+        my_pipeline.work_dir = tmp_path
 
         # ONNX does not support TransformedTargetRegressor
         my_pipeline.scale_data = False
@@ -344,7 +349,7 @@ class TestPipelineCompare:
         # read the onnx model
         import onnxruntime as rt
 
-        sess = rt.InferenceSession("best_model.onnx")
+        sess = rt.InferenceSession(tmp_path / "best_model.onnx")
         input_name = sess.get_inputs()[0].name
         output_name = sess.get_outputs()[0].name
         actual_pred = sess.run([output_name], {input_name: my_pipeline.X_test})[0]
@@ -360,6 +365,7 @@ class TestPipelineCompare:
 
         # test setup
         my_pipeline = Pipeline(config_file)
+        my_pipeline.work_dir = tmp_path
         my_pipeline.model_names = {
             "LinearRegression": {},
         }  # choose one model to control the test
@@ -371,9 +377,7 @@ class TestPipelineCompare:
         expected_pred = fitted_model.predict(my_pipeline.X_test)
 
         # read the joblib model
-        import joblib
-
-        loaded_model = joblib.load("best_model.joblib")
+        loaded_model = joblib.load(tmp_path / "best_model.joblib")
         actual_pred = loaded_model.predict(my_pipeline.X_test)
 
         np.testing.assert_allclose(expected_pred, actual_pred, rtol=1e-5)
@@ -387,6 +391,7 @@ class TestPipelineCompare:
 
         # test setup
         my_pipeline = Pipeline(config_file)
+        my_pipeline.work_dir = tmp_path
         my_pipeline.model_names = {
             "SklearnGPRegressor": {
                 "num_inducing": 50,
@@ -401,9 +406,7 @@ class TestPipelineCompare:
         expected_pred = fitted_model.predict(my_pipeline.X_test)
 
         # read the joblib model
-        import joblib
-
-        loaded_model = joblib.load("best_model.joblib")
+        loaded_model = joblib.load(tmp_path / "best_model.joblib")
         actual_pred = loaded_model.predict(my_pipeline.X_test)
 
         np.testing.assert_allclose(expected_pred, actual_pred, rtol=1e-5)
@@ -428,7 +431,6 @@ class TestPipelineCompare:
                 "max_epochs": 5,
             },
         }  # choose one model to control the test
-        my_pipeline.work_dir = tmp_path
         my_pipeline.work_dir = tmp_path
         my_pipeline.setup(data="exp1")
         models, scores = my_pipeline.compare_models(cross_validation=True)
