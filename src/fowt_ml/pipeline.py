@@ -147,13 +147,14 @@ class Pipeline:
             ):
                 sequence_length = self.data_segmentation_kwargs["sequence_length"]
 
-                # we loop to avoid data leak between train and test sets
-                self.X_train = create_segments(self.X_train, sequence_length)
+                # this is a view, so no extra memory is used
+                self.X_train_segments = create_segments(self.X_train, sequence_length)
+                self.X_test_segments = create_segments(self.X_test, sequence_length)
 
                 # align Y data
-                self.Y_train = self.Y_train[sequence_length - 1 :]
+                self.Y_train_segments = self.Y_train[sequence_length - 1 :]
+                self.Y_test_segments = self.Y_test[sequence_length - 1 :]
 
-                self._rnn_model_exist = True
             else:
                 raise ValueError(
                     "Timeseries segmentation is only applicable for RNN models."
@@ -180,25 +181,32 @@ class Pipeline:
 
         # rnn model uses 3d scaled data
         if self.scale_data:
-            model.use_scaled_data()
             if NeuralNetwork.is_rnn_like(model_name):
-                model.use_scaled_data(rnn_like=True)
+                X_train = self.X_train_segments
+                Y_train = self.Y_train_segments
+                X_test = self.X_test_segments
+                Y_test = self.Y_test_segments
+                model.use_scaled_data(data_3d=True)
             else:
+                X_train = self.X_train
+                Y_train = self.Y_train
+                X_test = self.X_test
+                Y_test = self.Y_test
                 model.use_scaled_data()
 
         if cross_validation:
             all_scores = model.cross_validate(
-                self.X_train,
-                self.Y_train,
+                X_train,
+                Y_train,
                 scoring=self.metric_names,
                 **self.cross_validation_kwargs,
             )
             # calculate mean of the scores
             scores = {k: v.mean() for k, v in all_scores.items()}
-            model.estimator.fit(self.X_train, self.Y_train)
+            model.estimator.fit(X_train, Y_train)
         else:
             scores = model.calculate_score(
-                self.X_train, self.X_test, self.Y_train, self.Y_test, self.metric_names
+                X_train, X_test, Y_train, Y_test, self.metric_names
             )
         return model.estimator, scores
 
@@ -209,7 +217,11 @@ class Pipeline:
                 with mlflow.start_run(experiment_id=self.experiment_id):
                     mlflow.log_param("model_name", model_name)
                     mlflow.log_metrics(self.scores[model_name])
-                    input_example = self.X_train[:1]  # small slice of training data
+                    if NeuralNetwork.is_rnn_like(model_name):
+                        X_train = self.X_train_segments
+                    else:
+                        X_train = self.X_train
+                    input_example = X_train[:1]  # small slice of training data
                     model = self.fitted_models[model_name]
                     signature = mlflow.models.infer_signature(
                         input_example, model.predict(input_example)
@@ -235,6 +247,7 @@ class Pipeline:
             # the TransformedTargetRegressor is not supported in ONNX
             # see https://onnx.ai/sklearn-onnx/supported.html#supported-scikit-learn-models
             if self.scale_data | (best_model_name == "SklearnGPRegressor"):
+                # TODO: save only model state and not the whole object
                 file_name = self.work_dir / "best_model.joblib"
                 joblib.dump(best_model, file_name)
                 logger.info(f"Saving best model to joblib format in {file_name}")

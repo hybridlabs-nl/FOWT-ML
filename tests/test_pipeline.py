@@ -444,3 +444,59 @@ class TestPipelineCompare:
         assert Path(tmp_path / "best_model.joblib").exists()
         # check sorting of scores
         assert scores["r2"].iloc[0] >= scores["r2"].iloc[1]
+
+    def test_compare_models_segments(self, tmp_path):
+        # create dummy files
+        config_file = tmp_path / "config.yaml"
+        mat_file = tmp_path / "data.mat"
+        creat_dummy_config(config_file, mat_file)
+        create_dummy_mat_file(mat_file)
+
+        # test setup
+        my_pipeline = Pipeline(config_file)
+        my_pipeline.work_dir = tmp_path
+        my_pipeline.data_segmentation_kwargs = {"sequence_length": 3}
+        my_pipeline.setup(data="exp1")
+        models, scores = my_pipeline.compare_models()
+        assert isinstance(scores, pd.DataFrame)
+        assert "r2" in scores
+        assert "model_fit_time" in scores
+        assert isinstance(models, dict)
+        assert "LinearRegression" in models
+        assert "SklearnGPRegressor" in models
+        assert "RNNRegressor" in models
+        # check model is fitted
+        assert check_is_fitted(models["LinearRegression"]) is None
+        assert Path(tmp_path / "grid_scores.csv").exists()
+
+        # scale_data is true in config, so joblib model should exist
+        assert Path(tmp_path / "best_model.joblib").exists()
+        # check sorting of scores
+        assert scores["r2"].iloc[0] >= scores["r2"].iloc[1]
+
+    def test_compare_models_segments_cv(self, tmp_path):
+        # create dummy files
+        config_file = tmp_path / "config.yaml"
+        mat_file = tmp_path / "data.mat"
+        creat_dummy_config(config_file, mat_file)
+        create_dummy_mat_file(mat_file)
+
+        # test setup
+        my_pipeline = Pipeline(config_file)
+        my_pipeline.work_dir = tmp_path
+        my_pipeline.data_segmentation_kwargs = {"sequence_length": 3}
+        my_pipeline.save_grid_scores = False
+        my_pipeline.save_best_model = False
+        my_pipeline.setup(data="exp1")
+        models, scores = my_pipeline.compare_models(cross_validation=True)
+        assert isinstance(scores, pd.DataFrame)
+        assert "r2" in scores
+        assert "model_fit_time" in scores
+        assert isinstance(models, dict)
+        assert "LinearRegression" in models
+        assert "SklearnGPRegressor" in models
+        assert "RNNRegressor" in models
+        # check model is fitted
+        assert check_is_fitted(models["LinearRegression"]) is None
+        # check sorting of scores
+        assert scores["r2"].iloc[0] >= scores["r2"].iloc[1]
