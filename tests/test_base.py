@@ -332,6 +332,35 @@ class TestUseScaledData:
         assert y_pred.shape == y_test.shape
         assert "neg_mean_absolute_error" in actual_scores
 
+    def test_use_scaled_data_rnn_with_segments_cv(self):
+        dtype = np.float32
+        x_train = np.asarray([[1, 2], [2, 3], [3, 4], [4, 5], [5, 6]], dtype=dtype)
+        y_train = np.asarray([[2, 2], [3, 3], [4, 4], [5, 5], [6, 6]], dtype=dtype)
+        x_test = np.asarray([[6, 7], [7, 8], [8, 9]], dtype=dtype)
+        y_test = np.asarray([[7, 7], [8, 8], [9, 9]], dtype=dtype)
+        params = {
+            "input_size": 2,
+            "hidden_size": 6,
+            "output_size": 2,
+            "num_layers": 2,
+        }
+
+        # reshape data to 3d (samples, 3, features)
+        seq_len = 3
+        x_train = create_segments(x_train, seq_len)
+        x_test = create_segments(x_test, seq_len)
+
+        # reshape targets to 2d (samples, 2)
+        y_train = y_train[seq_len - 1 :]  # adjust for sequence length
+        y_test = y_test[seq_len - 1 :]
+
+        model = NeuralNetwork("RNNRegressor", **params)
+        model.use_scaled_data(data_3d=True)
+        actual_scores = model.cross_validate(
+            x_train, y_train, ["neg_mean_absolute_error"], cv=2,
+        )
+        assert "neg_mean_absolute_error" in actual_scores
+
 
 class TestTimeSeriesStandardScaler:
     def test_timeseries_standard_scaler(self):
