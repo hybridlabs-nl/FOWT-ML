@@ -93,6 +93,7 @@ def SklearnGPRegressor(  # noqa: N802
         likelihood=gpytorch.likelihoods.MultitaskGaussianLikelihood(
             num_tasks=num_tasks
         ),
+        verbose=0,
     )
     params.update(kwargs)
     return GPRegressor(**params)
