@@ -11,6 +11,7 @@ import yaml
 from pydantic_core import PydanticUndefined
 from sklearn.model_selection import cross_validate
 from sklearn.model_selection import train_test_split
+from skorch.probabilistic import GPRegressor
 from fowt_ml.ensemble import EnsembleModel
 from fowt_ml.gaussian_process import SparseGaussianModel
 from fowt_ml.linear_models import LinearModels
@@ -137,6 +138,11 @@ class MLConfig(BaseConfig):
                 model_class = create_skorch_regressor
                 allowed_kwargs = get_allowed_kwargs(model_class)
                 model_class = skorch.net.NeuralNet
+                allowed_kwargs = allowed_kwargs | get_allowed_kwargs(model_class)
+            elif SparseGaussianModel.is_gp_like(model_name):
+                model_class = SparseGaussianModel.ESTIMATOR_NAMES[model_name]
+                allowed_kwargs = get_allowed_kwargs(model_class)
+                model_class = GPRegressor
                 allowed_kwargs = allowed_kwargs | get_allowed_kwargs(model_class)
 
             if invalid := set(kwargs.keys()) - allowed_kwargs:

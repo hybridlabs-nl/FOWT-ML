@@ -50,7 +50,12 @@ def create_dummy_mat_file(file_name):
 def creat_dummy_config(config_file, mat_file):
     model_names = {
         "LinearRegression": {},
-        "SklearnGPRegressor": {"num_inducing": 50, "num_latents": 3, "num_epochs": 1},
+        "SklearnGPRegressor": {
+            "inducing_points": 500,
+            "num_latents": 3,
+            "num_tasks": 1,
+            "num_training_samples": 1000,
+        },
         "RNNRegressor": {
             "input_size": 3,
             "hidden_size": 5,

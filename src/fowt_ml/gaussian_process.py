@@ -3,18 +3,10 @@
 from collections.abc import Iterable
 from logging import Logger
 import gpytorch
-import numpy as np
 import pandas as pd
 import torch
 from numpy.typing import ArrayLike
-from sklearn.base import BaseEstimator
-from sklearn.base import RegressorMixin
-from sklearn.metrics import r2_score
-from sklearn.utils.validation import check_array
-from sklearn.utils.validation import check_is_fitted
-from sklearn.utils.validation import check_X_y
-from torch.utils.data import DataLoader
-from torch.utils.data import TensorDataset
+from skorch.probabilistic import GPRegressor
 from fowt_ml.base import BaseModel
 
 logger = Logger(__name__)
@@ -73,10 +65,6 @@ class MultitaskGPModelApproximate(gpytorch.models.ApproximateGP):
             batch_shape=torch.Size([num_latents]),
         )
 
-        self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(
-            num_tasks=num_tasks
-        ).to(DEVICE)
-
     def forward(self, x):
         """Forward pass of the model."""
         mean_x = self.mean(x)
@@ -84,135 +72,30 @@ class MultitaskGPModelApproximate(gpytorch.models.ApproximateGP):
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
 
 
-class SklearnGPRegressor(RegressorMixin, BaseEstimator):
-    """Sklearn Wrapper for MultitaskGPModelApproximate."""
+def SklearnGPRegressor(  # noqa: N802
+    inducing_points: ArrayLike,
+    num_latents: int,
+    num_tasks: int,
+    num_training_samples: int,
+    **kwargs,
+) -> GPRegressor:
+    """Create a skorch GPRegressor with skorch.
 
-    def __init__(
-        self,
-        num_inducing,
-        num_latents,
-        num_epochs=10,
-        batch_size=1024,
-        learning_rate=0.01,
-    ):
-        self.num_inducing = num_inducing
-        self.num_latents = num_latents
-        self.num_epochs = num_epochs
-        self.batch_size = batch_size
-        self.learning_rate = learning_rate
-
-    def __sklearn_tags__(self):
-        tags = super().__sklearn_tags__()
-        tags.target_tags.two_d_labels = True
-        tags.target_tags.multi_output = True
-        tags.non_deterministic = True
-        tags.requires_fit = True
-        tags.input_tags.three_d_array = True
-        return tags
-
-    def fit(self, x_train: ArrayLike, y_train: ArrayLike) -> "SklearnGPRegressor":
-        """Fit the model to the training data."""
-        # Check that X and y have correct shape
-        x_train, y_train = check_X_y(x_train, y_train, multi_output=True)
-
-        x_train = _to_tensor(x_train, dtype="float32", device=DEVICE)
-        y_train = _to_tensor(y_train, dtype="float32", device=DEVICE)
-
-        # add some sklearn variables
-        self.X_ = x_train
-        self.y_ = y_train
-        self.n_features_in_ = x_train.shape[1]
-
-        # initialize model
-        if y_train.ndim == 1:
-            y_train = y_train.unsqueeze(1)
-
-        inducing_points = x_train[torch.randperm(x_train.size(0))[: self.num_inducing]]
-
-        self.module_ = MultitaskGPModelApproximate(
-            inducing_points=inducing_points,
-            num_latents=self.num_latents,
-            num_tasks=y_train.size(1),
-        ).to(DEVICE)
-
-        self.likelihood_ = self.module_.likelihood
-
-        # Train the model
-        self.module_.train()
-        self.likelihood_.train()
-
-        optimizer = torch.optim.Adam(self.module_.parameters(), lr=self.learning_rate)
-        # marginal log likelihood (mll)
-        mll = gpytorch.mlls.VariationalELBO(
-            self.likelihood_, self.module_, num_data=x_train.size(0)
-        )
-
-        # TODO optimize the loops
-        for epoch in range(self.num_epochs):
-            total_loss = 0
-            if self.batch_size:  # Use batching if batch_size is set
-                batches = DataLoader(
-                    TensorDataset(x_train, y_train),
-                    batch_size=self.batch_size,
-                )
-            else:  # Treat entire dataset as one batch
-                batches = [(x_train, y_train)]
-            for x_batch, y_batch in batches:
-                optimizer.zero_grad()
-                output = self.module_(x_batch)
-                loss = -mll(output, y_batch)
-                loss.backward()
-                optimizer.step()
-                total_loss += loss
-
-            # normalize the loss per data point and output dimension because it
-            # gives a better idea of the loss in log
-            ave_loss = total_loss.item() / (x_train.size(0) * y_train.size(1))
-            logger.info(f"Epoch {epoch + 1}/{self.num_epochs} - Loss: {ave_loss:.3f}")
-
-        self.is_fitted_ = True
-        return self
-
-    def predict(self, x_array: ArrayLike) -> ArrayLike:
-        """Make predictions using the trained model."""
-        # Check if the model has been fitted
-        check_is_fitted(self, ["is_fitted_", "module_", "likelihood_"])
-
-        # Check that X has correct shape
-        x_array = check_array(x_array)
-
-        # Check number of features
-        if x_array.shape[1] != self.n_features_in_:
-            raise ValueError(
-                f"Expected {self.n_features_in_} features, "
-                f"but got {x_array.shape[1]} features."
-            )
-        x_array = _to_tensor(x_array, dtype="float32", device=DEVICE)
-
-        self.module_.eval()
-        self.likelihood_.eval()
-
-        all_preds = []
-        with torch.no_grad():
-            if self.batch_size:  # Use batching if batch_size is set
-                batches = DataLoader(
-                    TensorDataset(x_array),
-                    batch_size=self.batch_size,
-                )
-            else:  # Treat entire dataset as one batch
-                batches = [(x_array,)]
-            for (x_batch,) in batches:
-                predictions = self.likelihood_(self.module_(x_batch))
-                all_preds.append(predictions.mean.cpu())
-
-        # sklearn multioutput regressor expects float64
-        # see check_multioutput_regressor
-        return torch.cat(all_preds, dim=0).numpy().astype(np.float64)
-
-    def score(self, x, y):
-        """Return the R^2 score of the prediction."""
-        y_pred = self.predict(x)
-        return r2_score(y, y_pred)
+    see
+    https://skorch.readthedocs.io/en/latest/user/probabilistic.html#approximate-gaussian-processes
+    """
+    params = dict(
+        module=MultitaskGPModelApproximate,
+        module__inducing_points=inducing_points,
+        module__num_latents=num_latents,
+        module__num_tasks=num_tasks,
+        criterion__num_data=num_training_samples,
+        likelihood=gpytorch.likelihoods.MultitaskGaussianLikelihood(
+            num_tasks=num_tasks
+        ),
+    )
+    params.update(kwargs)
+    return GPRegressor(**params)
 
 
 class SparseGaussianModel(BaseModel):
@@ -221,6 +104,13 @@ class SparseGaussianModel(BaseModel):
     ESTIMATOR_NAMES = {
         "SklearnGPRegressor": SklearnGPRegressor,
     }
+
+    GP_LIKE_NAMES = {"SklearnGPRegressor"}
+
+    @classmethod
+    def is_gp_like(cls, model_name):
+        """Check if the model is GP-like."""
+        return model_name in cls.GP_LIKE_NAMES
 
 
 def _to_tensor(
