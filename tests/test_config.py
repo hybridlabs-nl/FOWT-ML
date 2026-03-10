@@ -45,9 +45,10 @@ class TestConfig:
         assert cfg.ml_setup["model_names"] == {
             "LinearRegression": {},
             "SklearnGPRegressor": {
-                "num_inducing": 50,
+                "inducing_points": 500,
                 "num_latents": 3,
-                "num_epochs": 1,
+                "num_tasks": 1,
+                "num_training_samples": 1000,
             },
             "RNNRegressor": {
                 "input_size": 3,
@@ -102,7 +103,14 @@ class TestConfig:
         MLConfig(
             targets=["target1"],
             predictors=["pred1"],
-            model_names={"SklearnGPRegressor": {"num_inducing": 123}},
+            model_names={
+                "SklearnGPRegressor": {
+                    "inducing_points": 100,
+                    "num_latents": 3,
+                    "num_tasks": 2,
+                    "num_training_samples": 1000,
+                }
+            },
             metric_names=["r2"],
         )
 
@@ -165,11 +173,10 @@ def test_get_config_file_no_default():
 def test_get_allowed_kwargs_sparsegaussian():
     model_class = SparseGaussianModel.ESTIMATOR_NAMES["SklearnGPRegressor"]
     allowed_kwargs = get_allowed_kwargs(model_class)
-    assert "num_inducing" in allowed_kwargs
-    assert "num_epochs" in allowed_kwargs
-    assert "learning_rate" in allowed_kwargs
-    assert "batch_size" in allowed_kwargs
+    assert "inducing_points" in allowed_kwargs
     assert "num_latents" in allowed_kwargs
+    assert "num_tasks" in allowed_kwargs
+    assert "num_training_samples" in allowed_kwargs
 
 
 def test_get_allowed_kwargs_xgboost():

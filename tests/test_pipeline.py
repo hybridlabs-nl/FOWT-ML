@@ -99,23 +99,6 @@ class TestPipelineSplit:
         assert results[1].shape[0] == 0.8 * my_pipeline.X_data.shape[0]
 
 
-class TestPipelineGetModels:
-    def test_get_models(self, tmp_path):
-        # create dummy files
-        config_file = tmp_path / "config.yaml"
-        mat_file = tmp_path / "data.mat"
-        creat_dummy_config(config_file, mat_file)
-        create_dummy_mat_file(mat_file)
-
-        # test get_models
-        my_pipeline = Pipeline(config_file)
-        models = my_pipeline.get_models()
-        assert "LinearRegression" in models
-        assert "SklearnGPRegressor" in models
-        assert "RNNRegressor" in models
-        assert len(models) == 3
-
-
 class TestPipelineSetup:
     def test_setup_str(self, tmp_path):
         # create dummy files
@@ -215,8 +198,8 @@ class TestPipelineCompare:
         # create dummy files
         config_file = tmp_path / "config.yaml"
         mat_file = tmp_path / "data.mat"
-        creat_dummy_config(config_file, mat_file)
         create_dummy_mat_file(mat_file)
+        creat_dummy_config(config_file, mat_file)
 
         # test setup
         my_pipeline = Pipeline(config_file)
@@ -394,9 +377,10 @@ class TestPipelineCompare:
         my_pipeline.work_dir = tmp_path
         my_pipeline.model_names = {
             "SklearnGPRegressor": {
-                "num_inducing": 50,
+                "inducing_points": 50,
                 "num_latents": 3,
-                "num_epochs": 1,
+                "num_tasks": 1,
+                "num_training_samples": 1000,
             },
         }  # choose one model to control the test
         my_pipeline.setup(data="exp1")

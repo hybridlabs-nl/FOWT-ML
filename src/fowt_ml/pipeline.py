@@ -86,7 +86,7 @@ class Pipeline:
 
         return train_test_split(self.X_data, self.Y_data, **kwargs)
 
-    def get_models(self):
+    def _get_models(self):
         """Returns the models for the given model names.
 
         Returns:
@@ -100,10 +100,12 @@ class Pipeline:
             NeuralNetwork,
             XGBoost,
         ]
-        for model_name, kwrags in self.model_names.items():
+        for model_name, kwargs in self.model_names.items():
             for model_class in model_classes:
                 if model_name in model_class.ESTIMATOR_NAMES:
-                    models[model_name] = model_class(model_name, **kwrags)
+                    if SparseGaussianModel.is_gp_like(model_name):
+                        kwargs = _fix_gp_kwargs(kwargs, self.X_train)
+                    models[model_name] = model_class(model_name, **kwargs)
                     break
             else:
                 raise ValueError(f"Model {model_name} not supported.")
@@ -175,7 +177,7 @@ class Pipeline:
                 )
 
         # get the models
-        self.model_instances = self.get_models()
+        self.model_instances = self._get_models()
 
         # create work directory
         self.work_dir.mkdir(parents=True, exist_ok=True)
@@ -340,3 +342,12 @@ def _export_to_onnx(model_name, best_model, no_features, file_name):
         onnx_model = convert_sklearn(best_model, initial_types=initial_type)
         with open(file_name, "wb") as f:
             f.write(onnx_model.SerializeToString())
+
+
+def _fix_gp_kwargs(kwargs, x_train):
+    kwargs["num_training_samples"] = x_train.shape[0]
+
+    inducing_points = kwargs.get("inducing_points")
+    if isinstance(inducing_points, int):
+        kwargs["inducing_points"] = x_train[:inducing_points, :]
+    return kwargs
