@@ -1,11 +1,14 @@
 import logging
 import numpy as np
+import pandas as pd
 import pytest
+from fowt_ml.datasets import build_config_data
 from fowt_ml.datasets import check_data
 from fowt_ml.datasets import convert_mat_to_df
 from fowt_ml.datasets import create_segments
 from fowt_ml.datasets import fix_column_names
 from fowt_ml.datasets import get_data
+from fowt_ml.datasets import get_data_mfiles
 from . import create_dummy_mat_file
 
 logger = logging.getLogger(__name__)
@@ -197,3 +200,51 @@ def test_create_segments(tmp_path):
     segment_length = 10
     segments = create_segments(train_data, segment_length)
     assert segments.shape == (41, 10, df.shape[1])
+
+
+def test_build_config_data(tmp_path):
+    # create mat files in tmp_path
+    create_dummy_mat_file(tmp_path / "exp1.mat", data_id="exp1")
+    create_dummy_mat_file(tmp_path / "exp2.mat", data_id="exp2")
+
+    # create aux df
+    aux_df = pd.DataFrame(
+        {
+            "recording_number": [1, 2],
+            "wind_speed": [10.0, 15.0],
+            "description": ["Test data 1", "Test data 2"],
+        }
+    )
+
+    config = build_config_data(
+        tmp_path, aux_df=aux_df, aux_df_column_name="recording_number"
+    )
+
+    assert config["exp1"]["path_file"] == str(tmp_path / "exp1.mat")
+    assert config["exp2"]["path_file"] == str(tmp_path / "exp2.mat")
+    assert config["exp1"]["aux_data"]["wind_speed"] == 10.0
+    assert config["exp1"]["aux_data"]["description"] == "Test data 1"
+    assert config["exp2"]["aux_data"]["wind_speed"] == 15.0
+
+
+def test_get_data_mfiles(tmp_path):
+    # create mat files in tmp_path
+    create_dummy_mat_file(tmp_path / "exp1.mat", data_id="exp1")
+    create_dummy_mat_file(tmp_path / "exp2.mat", data_id="exp2")
+
+    # create csv file for aux data
+    aux_df = pd.DataFrame(
+        {
+            "recording_number": [1, 2],
+            "wind_speed": [10.0, 15.0],
+            "description": ["Test data 1", "Test data 2"],
+        }
+    )
+    aux_csv_file = tmp_path / "aux_data.csv"
+    aux_df.to_csv(aux_csv_file, index=False)
+
+    df = get_data_mfiles(
+        tmp_path, aux_csv_file=aux_csv_file, aux_df_column_name="recording_number"
+    )
+    assert len(df) == 100
+    assert len(df.columns) == 8  # original 5 + 3 in aux

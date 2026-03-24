@@ -1,11 +1,10 @@
 """Test utilities for the `tests` package."""
 
 
-def create_dummy_mat_file(file_name):
+def create_dummy_mat_file(file_name, data_id="exp1"):
     import h5py
     import numpy as np
 
-    data_id = "exp1"
     with h5py.File(file_name, "w") as hdf:
         # Create the top-level group
         grp = hdf.create_group(data_id)
