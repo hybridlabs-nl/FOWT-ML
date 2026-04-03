@@ -227,6 +227,45 @@ def test_build_config_data(tmp_path):
     assert config["exp2"]["aux_data"]["wind_speed"] == 15.0
 
 
+def test_build_config_data_wrong_aux_df_column_name(tmp_path):
+    # create mat files in tmp_path
+    create_dummy_mat_file(tmp_path / "exp1.mat", data_id="exp1")
+    create_dummy_mat_file(tmp_path / "exp2.mat", data_id="exp2")
+
+    # create aux df
+    aux_df = pd.DataFrame(
+        {
+            "recording_number": [1, 2],
+            "wind_speed": [10.0, 15.0],
+            "description": ["Test data 1", "Test data 2"],
+        }
+    )
+
+    with pytest.raises(ValueError, match="Column wrong_column not found in aux_df."):
+        build_config_data(tmp_path, aux_df=aux_df, aux_df_column_name="wrong_column")
+
+
+def test_build_config_data_without_aux_data(tmp_path):
+    # create mat files in tmp_path
+    create_dummy_mat_file(tmp_path / "exp1.mat", data_id="exp1")
+    create_dummy_mat_file(tmp_path / "exp2.mat", data_id="exp2")
+
+    # create aux df
+    aux_df = pd.DataFrame(
+        {
+            "recording_number": [1],
+            "wind_speed": [10.0],
+            "description": ["Test data 1"],
+        }
+    )
+    # this should work with warning
+    config = build_config_data(
+        tmp_path, aux_df=aux_df, aux_df_column_name="recording_number"
+    )
+    assert "aux_data" in config["exp1"]
+    assert "aux_data" not in config["exp2"]
+
+
 def test_get_data_mfiles(tmp_path):
     # create mat files in tmp_path
     create_dummy_mat_file(tmp_path / "exp1.mat", data_id="exp1")
