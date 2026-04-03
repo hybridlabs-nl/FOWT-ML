@@ -35,7 +35,7 @@ dependencies = [
     "skorch",  # for wrapping PyTorch models to sklearn interface
     "scikit-learn>=1.5",
     "skl2onnx",  # for saving sklearn models in ONNX format
-    "torch==2.7.0",  # for neural networks
+    "torch==2.8.0",  # for neural networks
     "xgboost",  # for XGBoost models
 ]
 description = "Machine learning (ML) kit for floating offshore wind turbines (FOWT)"
