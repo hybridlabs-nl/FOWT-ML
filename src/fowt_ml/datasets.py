@@ -1,6 +1,7 @@
 """This module contains functions to load and preprocess datasets."""
 
 import logging
+from pathlib import Path
 import h5py
 import numpy as np
 import pandas as pd
@@ -136,3 +137,79 @@ def create_segments(arr: np.array, seq_len: int) -> np.array:
     # Return a view of the array with the new shape and strides, if you need a
     # copy, use .copy() on the result
     return np.lib.stride_tricks.as_strided(arr, shape=shape, strides=strides)
+
+
+def build_config_data(data_dir, aux_df=None, aux_df_column_name=None):
+    """Builds a configuration dictionary for the data.
+
+    Args:
+        data_dir (str): Path to the data directory containing .mat files.
+        aux_df (pd.DataFrame, optional): DataFrame containing auxiliary data.
+        aux_df_column_name (str, optional): Column name in aux_df that matches
+           the recording number in the data_id.
+
+    Returns:
+        dict: Configuration dictionary for the data.
+
+    """
+    config = {}
+
+    # list all the files in the data directory with mat extension and get
+    # filename without extension as data_id
+    for file in Path(data_dir).glob("*.mat"):
+        data_id = file.stem
+        config[data_id] = {"path_file": str(file)}
+
+    # if aux_df is provided, use it to get the auxiliary data
+    if aux_df is not None:
+        # check if the aux_df has the required columns
+        if aux_df_column_name not in aux_df.columns:
+            raise ValueError(f"Column {aux_df_column_name} not found in aux_df.")
+
+        for data_id in config:
+            # split exp from the data_id and get the recording number this works
+            # even if the data id is without exp, as it will return the whole
+            # string
+            recording_number = int(data_id.split("exp")[-1])
+            df_aux = aux_df[aux_df[aux_df_column_name] == recording_number]
+            if not df_aux.empty:
+                config[data_id]["aux_data"] = df_aux.to_dict(orient="records")[0]
+            else:
+                logger.warning(
+                    f"No auxiliary data found for {data_id} in the CSV file."
+                )
+    return config
+
+
+def get_data_mfiles(data_dir, aux_csv_file=None, aux_df_column_name=None):
+    """Merge the data from the data_dir into a dataframe.
+
+    Args:
+        data_dir (str): Path to the data directory containing .mat files.
+        aux_csv_file (str, optional): Path to the CSV file containing auxiliary data.
+        aux_df_column_name (str, optional): Column name in the CSV file that matches
+           the recording number in the data_id.
+
+    Returns:
+        pd.DataFrame: DataFrame containing the merged data from all the .mat
+            files and the auxiliary data from the CSV file.
+
+    """
+    if aux_csv_file is not None:
+        aux_df = pd.read_csv(aux_csv_file)
+        if aux_df_column_name is None:
+            raise ValueError(
+                "aux_df_column_name must be provided if aux_csv_file is provided."
+            )
+    else:
+        aux_df = None
+    config = build_config_data(
+        data_dir, aux_df=aux_df, aux_df_column_name=aux_df_column_name
+    )
+
+    # loop over data_ids in config and get the data for each data_id and merge
+    # them into a single dataframe
+    dfs = [get_data(data_id, config) for data_id in config]
+    data = pd.concat(dfs, ignore_index=True)
+
+    return data
