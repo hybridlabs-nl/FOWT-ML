@@ -54,6 +54,14 @@ class BaseConfig(pydantic.BaseModel):
     def __contains__(self, item):
         return item in self.__class__.model_fields
 
+    def get(self, item: str, default=None):
+        """Get attribute value with default fallback."""
+        try:
+            value = getattr(self, item)
+            return value or default
+        except AttributeError:
+            return default
+
     def as_dict(self, *, by_alias: bool = False) -> dict:
         """Return the config as a (nested) dict."""
         return self.model_dump(by_alias=by_alias)
@@ -62,6 +70,7 @@ class BaseConfig(pydantic.BaseModel):
 class ExperimentConfig(BaseConfig):
     path_file: str
     aux_data: dict[str, float] = {}
+    data_provider: str = ""
 
 
 class MLConfig(BaseConfig):
