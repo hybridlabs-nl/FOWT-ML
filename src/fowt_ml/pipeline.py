@@ -54,9 +54,8 @@ class Pipeline:
         self.log_experiment = config["ml_setup"]["log_experiment"]
 
     def _setup_mlflow(self):
-        mlruns_dir = self.work_dir / "mlruns"
-        mlruns_dir.mkdir(parents=True, exist_ok=True)
-        mlflow.set_tracking_uri(mlruns_dir.resolve().as_uri())
+        mlflow_db = self.work_dir / "mlflow.db"
+        mlflow.set_tracking_uri(f"sqlite:///{mlflow_db.resolve()}")
         mlflow_experiment = mlflow.get_experiment_by_name("comparison")
         if mlflow_experiment:
             self.experiment_id = mlflow_experiment.experiment_id
