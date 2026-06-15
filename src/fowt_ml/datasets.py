@@ -53,20 +53,71 @@ def convert_mat_to_df(mat_file: str, data_id: str) -> pd.DataFrame:
     return pd.DataFrame(data)
 
 
+def convert_h5m_to_df(h5m_file: str, data_id: str) -> pd.DataFrame:
+    """Read a struct from an h5m file and convert to a pandas DataFrame.
+
+    Args:
+        h5m_file (str): Path to the h5m file
+        data_id (str): ID of the data in the h5m file
+
+    Returns:
+        pd.DataFrame: DataFrame containing all datasets from the struct
+    """
+    data_dict = {}
+    hdf = h5py.File(h5m_file, mode="r")
+
+    # validate the file
+    if data_id not in hdf:
+        raise ValueError(f"Experiment {data_id} not found in the file.")
+
+    # Access the struct/group
+    struct = hdf[data_id]
+
+    # Read all datasets in the struct
+    for key in struct.keys():
+        item = struct[key]
+
+        if isinstance(item, h5py.Dataset):
+            try:
+                # Convert dataset to column
+                data_dict[key] = item[()]
+            except Exception as e:
+                print(f"Could not read '{key}': {e}")
+        elif isinstance(item, h5py.Group):
+            print(f"Skipping nested group: {key}")
+
+    return pd.DataFrame(data_dict)
+
+
 def get_data(data_id: str, config: dict) -> pd.DataFrame:
     """Returns a dataframe for the given data_id.
 
+    The data_provider key in the config file is used to determine which function
+    to use. The data of `TUDelft_wind_lab` is stored in .mat files based on the
+    measurements done in is based on the paper
+    https://doi.org/10.5194/wes-11-839-2026. The data of `MARIN` is stored in
+    .h5m files based on open source data
+    https://www.marin.nl/en/news/open-source-semi-submersible-fowt-design.
+
     Args:
-        data_id (str): ID of the data in the configuration file.
+        data_id (str): ID of the data in the configuration file. config (dict):
         config (dict): Configuration dictionary.
             Example: {"data_id": {"path_file": "data.mat"}}.
+        data_provider (str): Name of the data provider.
 
     Returns:
         pd.DataFrame: DataFrame for the given data_id.
 
     """
     data_info = config[data_id]
-    df = convert_mat_to_df(data_info["path_file"], data_id)
+
+    data_provider = data_info.get("data_provider", "TUDelft_wind_lab")
+    if data_provider == "TUDelft_wind_lab":
+        df = convert_mat_to_df(data_info["path_file"], data_id)
+    elif data_provider == "MARIN":
+        df = convert_h5m_to_df(data_info["path_file"], data_id)
+    else:
+        raise ValueError(f"Data provider {data_provider} not supported.")
 
     # check if auxiliary data is present in the config file
     if "aux_data" in data_info:

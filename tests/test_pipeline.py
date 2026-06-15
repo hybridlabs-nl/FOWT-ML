@@ -135,8 +135,8 @@ class TestPipelineSetup:
         my_pipeline.log_experiment = True
         my_pipeline.setup(data="exp1")
 
-        # check mlflow directory created
-        assert Path(tmp_path / "mlruns").exists()
+        # check mlflow db created
+        assert Path(tmp_path / "mlflow.db").exists()
 
     def test_setup_df(self, tmp_path):
         # create dummy files
