@@ -46,7 +46,7 @@ def create_dummy_mat_file(file_name, data_id="exp1"):
         y_grp.create_dataset("Data", data=np.array(data_refs, dtype=h5py.ref_dtype))
 
 
-def creat_dummy_config(config_file, mat_file):
+def create_dummy_config(config_file, mat_file):
     model_names = {
         "LinearRegression": {},
         "SklearnGPRegressor": {

@@ -8,7 +8,7 @@ from fowt_ml.config import get_allowed_kwargs
 from fowt_ml.config import get_config_file
 from fowt_ml.gaussian_process import SparseGaussianModel
 from fowt_ml.xgboost import XGBoost
-from . import creat_dummy_config
+from . import create_dummy_config
 
 
 class TestBaseConfig:
@@ -32,7 +32,7 @@ class TestBaseConfig:
 class TestConfig:
     def test_from_yaml(self, tmp_path):
         config_file = tmp_path / "config.yaml"
-        creat_dummy_config(config_file, "data.mat")
+        create_dummy_config(config_file, "data.mat")
 
         cfg = Config.from_yaml(config_file)
         assert cfg.name == "dummy_experiment"
@@ -69,7 +69,7 @@ class TestConfig:
 
     def test_as_dict(self, tmp_path):
         config_file = tmp_path / "config.yaml"
-        creat_dummy_config(config_file, "data.mat")
+        create_dummy_config(config_file, "data.mat")
 
         cfg = Config.from_yaml(config_file)
         cfg_dict = cfg.as_dict()
@@ -86,6 +86,26 @@ class TestConfig:
                 model_names={"InvalidModel": {}},
                 metric_names=["r2"],
             )
+
+    def test_invalid_model_namewith_underscore(self):
+        with pytest.raises(
+            ValidationError, match="Model 'InvalidModel' not supported."
+        ):
+            MLConfig(
+                targets=["target1"],
+                predictors=["pred1"],
+                model_names={"InvalidModel_1": {}},
+                metric_names=["r2"],
+            )
+
+    def test_model_name_with_underscore(self):
+        cfg = MLConfig(
+            targets=["target1"],
+            predictors=["pred1"],
+            model_names={"LinearRegression_1": {}},
+            metric_names=["r2"],
+        )
+        assert "LinearRegression_1" in cfg.model_names
 
     def test_invalid_model_args(self):
         with pytest.raises(

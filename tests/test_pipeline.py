@@ -6,7 +6,7 @@ import pytest
 from sklearn.utils.validation import check_is_fitted
 from fowt_ml.config import Config
 from fowt_ml.pipeline import Pipeline
-from . import creat_dummy_config
+from . import create_dummy_config
 from . import create_dummy_mat_file
 
 
@@ -14,7 +14,7 @@ class TestPipelineInit:
     def test_init_config_file(self, tmp_path):
         config_file = tmp_path / "config.yaml"
         mat_file = tmp_path / "data.mat"
-        creat_dummy_config(config_file, mat_file)
+        create_dummy_config(config_file, mat_file)
 
         my_pipeline = Pipeline(config_file)
         my_pipeline.work_dir = tmp_path
@@ -26,7 +26,7 @@ class TestPipelineInit:
     def test_init_config_dict(self, tmp_path):
         config_file = tmp_path / "config.yaml"
         mat_file = tmp_path / "data.mat"
-        creat_dummy_config(config_file, mat_file)
+        create_dummy_config(config_file, mat_file)
         cfg = Config.from_yaml(config_file)
 
         my_pipeline = Pipeline(cfg)
@@ -41,7 +41,7 @@ class TestPipelineGetData:
         # create dummy files
         config_file = tmp_path / "config.yaml"
         mat_file = tmp_path / "data.mat"
-        creat_dummy_config(config_file, mat_file)
+        create_dummy_config(config_file, mat_file)
         create_dummy_mat_file(mat_file)
 
         # test get_data
@@ -55,7 +55,7 @@ class TestPipelineSplit:
         # create dummy files
         config_file = tmp_path / "config.yaml"
         mat_file = tmp_path / "data.mat"
-        creat_dummy_config(config_file, mat_file)
+        create_dummy_config(config_file, mat_file)
         create_dummy_mat_file(mat_file)
 
         # test train_test_split
@@ -80,7 +80,7 @@ class TestPipelineSplit:
         # create dummy files
         config_file = tmp_path / "config.yaml"
         mat_file = tmp_path / "data.mat"
-        creat_dummy_config(config_file, mat_file)
+        create_dummy_config(config_file, mat_file)
         create_dummy_mat_file(mat_file)
 
         # test train_test_split
@@ -104,7 +104,7 @@ class TestPipelineSetup:
         # create dummy files
         config_file = tmp_path / "config.yaml"
         mat_file = tmp_path / "data.mat"
-        creat_dummy_config(config_file, mat_file)
+        create_dummy_config(config_file, mat_file)
         create_dummy_mat_file(mat_file)
 
         # test setup
@@ -126,7 +126,7 @@ class TestPipelineSetup:
         # create dummy files
         config_file = tmp_path / "config.yaml"
         mat_file = tmp_path / "data.mat"
-        creat_dummy_config(config_file, mat_file)
+        create_dummy_config(config_file, mat_file)
         create_dummy_mat_file(mat_file)
 
         # test setup
@@ -142,7 +142,7 @@ class TestPipelineSetup:
         # create dummy files
         config_file = tmp_path / "config.yaml"
         mat_file = tmp_path / "data.mat"
-        creat_dummy_config(config_file, mat_file)
+        create_dummy_config(config_file, mat_file)
         create_dummy_mat_file(mat_file)
 
         # test setup
@@ -161,7 +161,7 @@ class TestPipelineSetup:
         # create dummy files
         config_file = tmp_path / "config.yaml"
         mat_file = tmp_path / "data.mat"
-        creat_dummy_config(config_file, mat_file)
+        create_dummy_config(config_file, mat_file)
         create_dummy_mat_file(mat_file)
 
         # test setup
@@ -178,7 +178,7 @@ class TestPipelineSetup:
         # create dummy files
         config_file = tmp_path / "config.yaml"
         mat_file = tmp_path / "data.mat"
-        creat_dummy_config(config_file, mat_file)
+        create_dummy_config(config_file, mat_file)
         create_dummy_mat_file(mat_file)
 
         # test setup
@@ -192,6 +192,45 @@ class TestPipelineSetup:
         ):
             my_pipeline.setup(data="exp1")
 
+    def test_setup_with_different_models(self, tmp_path):
+        # create dummy files
+        config_file = tmp_path / "config.yaml"
+        mat_file = tmp_path / "data.mat"
+        create_dummy_config(config_file, mat_file)
+        create_dummy_mat_file(mat_file)
+
+        # check config
+        cfg = Config.from_yaml(config_file)
+        cfg["ml_setup"]["model_names"] = {
+            "LinearRegression": {},
+            "RNNRegressor_1": {
+                "input_size": 3,
+                "hidden_size": 2,
+                "num_layers": 2,
+                "output_size": 1,
+                "max_epochs": 5,
+            },
+            "RNNRegressor_2": {
+                "input_size": 3,
+                "hidden_size": 5,
+                "num_layers": 2,
+                "output_size": 1,
+                "max_epochs": 5,
+            },
+        }
+
+        # test setup
+        my_pipeline = Pipeline(cfg)
+        my_pipeline.setup(data="exp1")
+        assert "RNNRegressor_1" in my_pipeline.model_instances
+        assert "RNNRegressor_2" in my_pipeline.model_instances
+
+        params_1 = my_pipeline.model_instances["RNNRegressor_1"].estimator.get_params()
+        params_2 = my_pipeline.model_instances["RNNRegressor_2"].estimator.get_params()
+
+        assert params_1["module__hidden_size"] == 2
+        assert params_2["module__hidden_size"] == 5
+
 
 class TestPipelineCompare:
     def test_compare_models_default(self, tmp_path):
@@ -199,7 +238,7 @@ class TestPipelineCompare:
         config_file = tmp_path / "config.yaml"
         mat_file = tmp_path / "data.mat"
         create_dummy_mat_file(mat_file)
-        creat_dummy_config(config_file, mat_file)
+        create_dummy_config(config_file, mat_file)
 
         # test setup
         my_pipeline = Pipeline(config_file)
@@ -222,11 +261,48 @@ class TestPipelineCompare:
         # check sorting of scores
         assert scores["r2"].iloc[0] >= scores["r2"].iloc[1]
 
+    def test_compare_models_same_instances(self, tmp_path):
+        # create dummy files
+        config_file = tmp_path / "config.yaml"
+        mat_file = tmp_path / "data.mat"
+        create_dummy_mat_file(mat_file)
+        create_dummy_config(config_file, mat_file)
+
+        # check config
+        cfg = Config.from_yaml(config_file)
+        cfg["ml_setup"]["model_names"] = {
+            "LinearRegression": {},
+            "RNNRegressor_1": {
+                "input_size": 3,
+                "hidden_size": 2,
+                "num_layers": 2,
+                "output_size": 1,
+                "max_epochs": 5,
+            },
+            "RNNRegressor_2": {
+                "input_size": 3,
+                "hidden_size": 5,
+                "num_layers": 2,
+                "output_size": 1,
+                "max_epochs": 5,
+            },
+        }
+
+        # test setup
+        my_pipeline = Pipeline(cfg)
+        my_pipeline.work_dir = tmp_path
+        my_pipeline.setup(data="exp1")
+        models, _ = my_pipeline.compare_models()
+
+        assert "LinearRegression" in models
+        assert "RNNRegressor_1" in models
+        assert "RNNRegressor_2" in models
+
     def test_compare_models_sort(self, tmp_path):
         # create dummy files
         config_file = tmp_path / "config.yaml"
         mat_file = tmp_path / "data.mat"
-        creat_dummy_config(config_file, mat_file)
+        create_dummy_config(config_file, mat_file)
         create_dummy_mat_file(mat_file)
 
         # test setup
@@ -246,7 +322,7 @@ class TestPipelineCompare:
         # create dummy files
         config_file = tmp_path / "config.yaml"
         mat_file = tmp_path / "data.mat"
-        creat_dummy_config(config_file, mat_file)
+        create_dummy_config(config_file, mat_file)
         create_dummy_mat_file(mat_file)
 
         # test setup
@@ -270,7 +346,7 @@ class TestPipelineCompare:
         # create dummy files
         config_file = tmp_path / "config.yaml"
         mat_file = tmp_path / "data.mat"
-        creat_dummy_config(config_file, mat_file)
+        create_dummy_config(config_file, mat_file)
         create_dummy_mat_file(mat_file)
 
         # test setup
@@ -303,7 +379,7 @@ class TestPipelineCompare:
         # create dummy files
         config_file = tmp_path / "config.yaml"
         mat_file = tmp_path / "data.mat"
-        creat_dummy_config(config_file, mat_file)
+        create_dummy_config(config_file, mat_file)
         create_dummy_mat_file(mat_file)
 
         # test setup
@@ -343,7 +419,7 @@ class TestPipelineCompare:
         # create dummy files
         config_file = tmp_path / "config.yaml"
         mat_file = tmp_path / "data.mat"
-        creat_dummy_config(config_file, mat_file)
+        create_dummy_config(config_file, mat_file)
         create_dummy_mat_file(mat_file)
 
         # test setup
@@ -369,7 +445,7 @@ class TestPipelineCompare:
         # create dummy files
         config_file = tmp_path / "config.yaml"
         mat_file = tmp_path / "data.mat"
-        creat_dummy_config(config_file, mat_file)
+        create_dummy_config(config_file, mat_file)
         create_dummy_mat_file(mat_file)
 
         # test setup
@@ -399,7 +475,7 @@ class TestPipelineCompare:
         # create dummy files
         config_file = tmp_path / "config.yaml"
         mat_file = tmp_path / "data.mat"
-        creat_dummy_config(config_file, mat_file)
+        create_dummy_config(config_file, mat_file)
         create_dummy_mat_file(mat_file)
 
         # test setup
@@ -435,7 +511,7 @@ class TestPipelineCompare:
         # create dummy files
         config_file = tmp_path / "config.yaml"
         mat_file = tmp_path / "data.mat"
-        creat_dummy_config(config_file, mat_file)
+        create_dummy_config(config_file, mat_file)
         create_dummy_mat_file(mat_file)
 
         # test setup
@@ -464,7 +540,7 @@ class TestPipelineCompare:
         # create dummy files
         config_file = tmp_path / "config.yaml"
         mat_file = tmp_path / "data.mat"
-        creat_dummy_config(config_file, mat_file)
+        create_dummy_config(config_file, mat_file)
         create_dummy_mat_file(mat_file)
 
         # test setup
