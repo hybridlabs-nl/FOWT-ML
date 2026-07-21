@@ -134,29 +134,32 @@ class MLConfig(BaseConfig):
         }
 
         for model_name, kwargs in v.items():
-            if model_name not in estimator_map:
+            # remove anything after underscore in the model name, e.g.
+            # "RNNRegressor_1" -> "RNNRegressor"
+            model_name_instance = model_name.split("_")[0]
+            if model_name_instance not in estimator_map:
                 raise ValueError(
-                    f"Model '{model_name}' not supported. "
+                    f"Model '{model_name_instance}' not supported. "
                     f"Available: {list(estimator_map.keys())}"
                 )
 
             # Get the constructor signature for that model class
-            model_class = estimator_map[model_name]
+            model_class = estimator_map[model_name_instance]
             allowed_kwargs = get_allowed_kwargs(model_class)
-            if NeuralNetwork.is_rnn_like(model_name):
+            if NeuralNetwork.is_rnn_like(model_name_instance):
                 model_class = create_skorch_regressor
                 allowed_kwargs = get_allowed_kwargs(model_class)
                 model_class = skorch.net.NeuralNet
                 allowed_kwargs = allowed_kwargs | get_allowed_kwargs(model_class)
-            elif SparseGaussianModel.is_gp_like(model_name):
-                model_class = SparseGaussianModel.ESTIMATOR_NAMES[model_name]
+            elif SparseGaussianModel.is_gp_like(model_name_instance):
+                model_class = SparseGaussianModel.ESTIMATOR_NAMES[model_name_instance]
                 allowed_kwargs = get_allowed_kwargs(model_class)
                 model_class = GPRegressor
                 allowed_kwargs = allowed_kwargs | get_allowed_kwargs(model_class)
 
             if invalid := set(kwargs.keys()) - allowed_kwargs:
                 raise ValueError(
-                    f"Invalid kwargs for model '{model_name}': {invalid}. "
+                    f"Invalid kwargs for model '{model_name_instance}': {invalid}. "
                     f"Allowed: {allowed_kwargs}"
                 )
         return v

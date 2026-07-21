@@ -100,14 +100,17 @@ class Pipeline:
             XGBoost,
         ]
         for model_name, kwargs in self.model_names.items():
+            # remove anything after underscore in the model name, e.g.
+            # "RNNRegressor_1" -> "RNNRegressor"
+            model_name_instance = model_name.split("_")[0]
             for model_class in model_classes:
-                if model_name in model_class.ESTIMATOR_NAMES:
-                    if SparseGaussianModel.is_gp_like(model_name):
+                if model_name_instance in model_class.ESTIMATOR_NAMES:
+                    if SparseGaussianModel.is_gp_like(model_name_instance):
                         kwargs = _fix_gp_kwargs(kwargs, self.X_train)
-                    models[model_name] = model_class(model_name, **kwargs)
+                    models[model_name] = model_class(model_name_instance, **kwargs)
                     break
             else:
-                raise ValueError(f"Model {model_name} not supported.")
+                raise ValueError(f"Model {model_name_instance} not supported.")
         return models
 
     def setup(self, data: pd.DataFrame | str) -> Any:
@@ -194,9 +197,13 @@ class Pipeline:
         """
         model = self.model_instances[model_name]
 
+        # remove anything after underscore in the model name, e.g.
+        # "RNNRegressor_1" -> "RNNRegressor"
+        model_name_instance = model_name.split("_")[0]
+
         # rnn model uses 3d scaled data
         data_is_3d = False
-        if NeuralNetwork.is_rnn_like(model_name) and self.data_is_segmented:
+        if NeuralNetwork.is_rnn_like(model_name_instance) and self.data_is_segmented:
             X_train = self.X_train_segments  # noqa N806
             Y_train = self.Y_train_segments  # noqa N806
             X_test = self.X_test_segments  # noqa N806
