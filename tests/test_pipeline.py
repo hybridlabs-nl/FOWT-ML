@@ -225,12 +225,8 @@ class TestPipelineSetup:
         assert "RNNRegressor_1" in my_pipeline.model_instances
         assert "RNNRegressor_2" in my_pipeline.model_instances
 
-        params_1 = my_pipeline.model_instances[
-            "RNNRegressor_1"
-        ].estimator.get_params()
-        params_2 = my_pipeline.model_instances[
-            "RNNRegressor_2"
-        ].estimator.get_params()
+        params_1 = my_pipeline.model_instances["RNNRegressor_1"].estimator.get_params()
+        params_2 = my_pipeline.model_instances["RNNRegressor_2"].estimator.get_params()
 
         assert params_1["module__hidden_size"] == 2
         assert params_2["module__hidden_size"] == 5
