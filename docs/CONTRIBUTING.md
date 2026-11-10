@@ -17,7 +17,7 @@ The sections below outline the steps in each case.
 ## You have a question
 
 1. use the search functionality [in
-   issues](https://github.com/hybridlabs-nl/fowt_ml/issues) to see if someone
+   issues](https://github.com/hybridlabs-nl/FOWT-ML/issues) to see if someone
    already filed the same issue;
 2. if your issue search did not yield any relevant results, make a new issue;
 3. apply the "Question" label; apply other labels when relevant.
@@ -25,7 +25,7 @@ The sections below outline the steps in each case.
 ## You think you may have found a bug
 
 1. use the search functionality [in
-   issues](https://github.com/hybridlabs-nl/fowt_ml/issues) to see if someone
+   issues](https://github.com/hybridlabs-nl/FOWT-ML/issues) to see if someone
    already filed the same issue;
 2. if your issue search did not yield any relevant results, make a new issue, making sure to provide enough information to the rest of the community to understand the cause and context of the problem. Depending on the issue, you may want to include:
     - the [SHA hashcode](https://help.github.com/articles/autolinked-references-and-urls/#commit-shas) of the commit that is causing your problem;
