@@ -66,10 +66,10 @@ docs = [
 ]
 
 [project.urls]
-Repository = "https://github.com/hybridlabs-nl/fowt_ml"
-Issues = "https://github.com/hybridlabs-nl/fowt_ml/issues"
-Changelog = "https://github.com/hybridlabs-nl/fowt_ml/CHANGELOG.md"
-Documentation = "https://hybridlabs-nl.github.io/fowt-ml"
+Repository = "https://github.com/hybridlabs-nl/fowt-ml"
+Issues = "https://github.com/hybridlabs-nl/fowt-ml/issues"
+Changelog = "https://github.com/hybridlabs-nl/fowt-ml/CHANGELOG.md"
+Documentation = "https://hybridlabs-nl.github.io/FOWT-ML"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
