@@ -68,7 +68,7 @@ docs = [
 [project.urls]
 Repository = "https://github.com/hybridlabs-nl/fowt-ml"
 Issues = "https://github.com/hybridlabs-nl/fowt-ml/issues"
-Changelog = "https://github.com/hybridlabs-nl/fowt-ml/CHANGELOG.md"
+Changelog = "https://github.com/hybridlabs-nl/FOWT-ML/blob/main/docs/CHANGELOG.md"
 Documentation = "https://hybridlabs-nl.github.io/FOWT-ML"
 
 [tool.pytest.ini_options]
