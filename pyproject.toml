@@ -66,8 +66,8 @@ docs = [
 ]
 
 [project.urls]
-Repository = "https://github.com/hybridlabs-nl/fowt-ml"
-Issues = "https://github.com/hybridlabs-nl/fowt-ml/issues"
+Repository = "https://github.com/hybridlabs-nl/FOWT-ML"
+Issues = "https://github.com/hybridlabs-nl/FOWT-ML/issues"
 Changelog = "https://github.com/hybridlabs-nl/FOWT-ML/blob/main/docs/CHANGELOG.md"
 Documentation = "https://hybridlabs-nl.github.io/FOWT-ML"
 
