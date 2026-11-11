@@ -20,8 +20,6 @@ classifiers = [
     "",
     "Natural Language :: English",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
@@ -43,7 +41,7 @@ keywords = ["wind turbine"," machine learning"," NN"," ML"," FOWT"]
 license = {file = "LICENSE"}
 name = "fowt-ml"
 readme = {file = "README.md", content-type = "text/markdown"}
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 version = "0.1.0"
 
 [project.optional-dependencies]
@@ -59,7 +57,6 @@ docs = [
     "mkdocs-material",
     "mkdocs-jupyter",
     "mkdocstrings[python]",
-    "pymdown-extensions==12.1",  # avoid breakping mkdocstrings
     "mkdocs-gen-files",
     "mkdocs-include-markdown-plugin",
     "jupyterlab",
