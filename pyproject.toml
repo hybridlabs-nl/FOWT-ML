@@ -59,7 +59,7 @@ docs = [
     "mkdocs-material",
     "mkdocs-jupyter",
     "mkdocstrings[python]",
-    "pymdown-extensions<13",  # 13.0 breaks mkdocstrings' Highlighter (missing 'md' arg)
+    "pymdown-extensions==12.1",  # avoid breakping mkdocstrings
     "mkdocs-gen-files",
     "mkdocs-include-markdown-plugin",
     "jupyterlab",
