@@ -37,7 +37,7 @@ pip install jupyterlab
 ## Documentation
 
 The documentation for `FOWT-ML` is available at
-[https://hybridlabs-nl.github.io/fowt-ml](https://hybridlabs-nl.github.io/fowt-ml).
+[https://hybridlabs-nl.github.io/FOWT-ML](https://hybridlabs-nl.github.io/FOWT-ML).
 
 ## Contributing
 
