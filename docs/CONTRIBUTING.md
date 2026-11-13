@@ -49,7 +49,7 @@ append additional commits to your pull request.
 
 To create a release you need write permission on the repository.
 
-1. Check the author list in [`CITATION.cff`](../CITATION.cff)
+1. Check the author list and release date in [`CITATION.cff`](../CITATION.cff)
 2. Bump the version using `bump-my-version bump <major|minor|patch>`. The
    version can be manually changed in `pyproject.toml` in
    the root of the repository. Follow [Semantic Versioning](https://semver.org/)
