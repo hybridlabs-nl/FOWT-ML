@@ -6,7 +6,10 @@ authors:
   - family-names: Alidoost
     given-names: Sarah
     orcid: "https://orcid.org/0000-0000-0000-0000"
-date-released: 2024-12-05
+  - family-names: Atkins
+    given-names: Jamie
+    orcid: "https://orcid.org/0000-0002-5735-3312"
+date-released: 2026-11-13
 version: "0.1.0"
 repository-code: "https://github.com/hybridlabs-nl/fowt-ml"
 keywords:

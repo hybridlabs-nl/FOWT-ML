@@ -49,7 +49,7 @@ append additional commits to your pull request.
 
 To create a release you need write permission on the repository.
 
-1. Check the author list in [`CITATION.cff`](../CITATION.cff)
+1. Check the author list and release date in [`CITATION.cff`](../CITATION.cff)
 2. Bump the version using `bump-my-version bump <major|minor|patch>`. The
    version can be manually changed in `pyproject.toml` in
    the root of the repository. Follow [Semantic Versioning](https://semver.org/)
@@ -60,7 +60,8 @@ To create a release you need write permission on the repository.
    release button. Fill version, title and description field. Press the Publish
    Release button. For this package, if the zenodo integration is enabled, a new
    DOI will be created automatically.
-4. This software automatically publish to PyPI using a release or publish
+<!-- TODO: re-enable once deployment to PyPI is re-added -->
+<!-- 4. This software automatically publish to PyPI using a release or publish
    workflow. Wait until [PyPi publish
    workflow](../.github/workflows/python-publish.yml) has completed and verify
-   new release is on [PyPi](https://pypi.org/project/matchms/#history).
+   new release is on [PyPi](https://pypi.org/project/matchms/#history). -->
