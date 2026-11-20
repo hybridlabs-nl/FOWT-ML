@@ -1,5 +1,6 @@
 from pathlib import Path
 import joblib
+import mlflow
 import numpy as np
 import pandas as pd
 import pytest
@@ -260,6 +261,30 @@ class TestPipelineCompare:
         assert Path(tmp_path / "best_model.joblib").exists()
         # check sorting of scores
         assert scores["r2"].iloc[0] >= scores["r2"].iloc[1]
+
+    def test_compare_models_log_experiment(self, tmp_path):
+        # create dummy files
+        config_file = tmp_path / "config.yaml"
+        mat_file = tmp_path / "data.mat"
+        create_dummy_config(config_file, mat_file)
+        create_dummy_mat_file(mat_file)
+
+        # test setup
+        my_pipeline = Pipeline(config_file)
+        my_pipeline.work_dir = tmp_path
+        my_pipeline.log_experiment = True
+        my_pipeline.model_names = {
+            "MultilayerPerceptron": {"max_iter": 5},
+        }  # MLP fails with skops serialisation, see #71
+        my_pipeline.setup(data="exp1")
+        models, _ = my_pipeline.compare_models()
+
+        # check one run per model logged to mlflow
+        runs = mlflow.search_runs(experiment_ids=[my_pipeline.experiment_id])
+        assert len(runs) == len(models)
+
+        # check mlflow artifacts are written to the work directory
+        assert Path(tmp_path / "mlruns").exists()
 
     def test_compare_models_same_instances(self, tmp_path):
         # create dummy files
