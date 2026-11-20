@@ -60,7 +60,11 @@ class Pipeline:
         if mlflow_experiment:
             self.experiment_id = mlflow_experiment.experiment_id
         else:
-            self.experiment_id = mlflow.create_experiment("comparison")
+            # keep artifacts next to the db
+            artifact_location = (self.work_dir / "mlruns").resolve().as_uri()
+            self.experiment_id = mlflow.create_experiment(
+                "comparison", artifact_location=artifact_location
+            )
 
     def get_data(self, data_id: str) -> pd.DataFrame:
         """Returns the dataset for the given data_id.
@@ -255,6 +259,7 @@ class Pipeline:
                         model_name,
                         signature=signature,
                         input_example=input_example,
+                        serialization_format=mlflow.sklearn.SERIALIZATION_FORMAT_CLOUDPICKLE,  # skops default in MLflow 3.x rejects most of our models, set excplicitly to cloudpickle
                     )
 
     def _save_grid_scores(self):
