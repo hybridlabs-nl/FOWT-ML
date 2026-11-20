@@ -254,7 +254,7 @@ class Pipeline:
                     signature = mlflow.models.infer_signature(
                         input_example, model.predict(input_example)
                     )
-                    # skops default rejects most models used here; set excplicitly to cloudpickle
+                    # skops default rejects most of our models, so use cloudpickle
                     mlflow.sklearn.log_model(
                         model,
                         model_name,
