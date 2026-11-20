@@ -254,12 +254,13 @@ class Pipeline:
                     signature = mlflow.models.infer_signature(
                         input_example, model.predict(input_example)
                     )
+                    # skops default in MLflow 3.x rejects most of our models, set excplicitly to cloudpickle
                     mlflow.sklearn.log_model(
                         model,
                         model_name,
                         signature=signature,
                         input_example=input_example,
-                        serialization_format=mlflow.sklearn.SERIALIZATION_FORMAT_CLOUDPICKLE,  # skops default in MLflow 3.x rejects most of our models, set excplicitly to cloudpickle
+                        serialization_format=mlflow.sklearn.SERIALIZATION_FORMAT_CLOUDPICKLE,
                     )
 
     def _save_grid_scores(self):
